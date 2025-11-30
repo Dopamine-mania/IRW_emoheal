@@ -1,0 +1,7 @@
+{
+  "name": "Resonance Well",
+  "description": "A cinematic, liminal space experience featuring a transition through a monolith portal.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
