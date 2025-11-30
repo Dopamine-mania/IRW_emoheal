@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useStore, ElementType } from '../store';
+import { PlayerHUD } from './PlayerHUD';
 
 const ELEMENT_COLORS: Record<ElementType, string> = {
   wood: '#22d3ee',
@@ -220,6 +221,11 @@ export const Overlay: React.FC = () => {
              {message}
            </h1>
         </div>
+      )}
+
+      {/* PlayerHUD - Glassmorphism Audio Player (Layer 4: Foreground) */}
+      {phase === 'resonance' && overlayOpacity < 0.5 && currentElement && (
+        <PlayerHUD />
       )}
     </>
   );
