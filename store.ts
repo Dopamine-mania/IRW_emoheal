@@ -1,5 +1,6 @@
 
 import { create } from 'zustand';
+import { PhotoMemory, loadPhotoMemories, savePhotoMemory } from './utils/storage';
 
 export type ElementType = 'wood' | 'fire' | 'earth' | 'metal' | 'water';
 
@@ -16,10 +17,26 @@ type AppState = {
 
   // Microphone state
   isMicReady: boolean;
-  
+
   // Injection Animation State (Iteration 03)
   isInjecting: boolean;
-  
+
+  // Photo Particles state
+  uploadedPhoto: string | null;
+  isPhotoMode: boolean;
+
+  // Photo Choice Panel state
+  isPhotoChoicePanelOpen: boolean;
+  pendingLandmark: { id: string; name: string } | null;
+
+  // Time Corridor - Photo History state
+  photoMemories: PhotoMemory[];
+  corridorMode: 'CORRIDOR' | 'INSPECT';
+  corridorFocusIndex: number;
+  corridorCameraX: number;
+  corridorIsDragging: boolean;
+  corridorInspectRotation: { x: number; y: number };
+
   // Actions
   startJourney: () => void;
   completeTransition: () => void; 
@@ -36,7 +53,25 @@ type AppState = {
   backToEmitter: () => void;
   backToSelection: () => void;
   backToShards: () => void;
-  
+
+  // Photo Actions
+  uploadPhoto: (photoUrl: string) => void;
+  togglePhotoMode: () => void;
+  clearPhoto: () => void;
+
+  // Photo Choice Panel Actions
+  openPhotoChoicePanel: (landmark: { id: string; name: string }) => void;
+  closePhotoChoicePanel: () => void;
+
+  // Time Corridor - Photo History Actions
+  addPhotoMemory: (photo: Omit<PhotoMemory, 'id' | 'timestamp'>) => void;
+  loadMemoriesFromStorage: () => void;
+  setCorridorMode: (mode: 'CORRIDOR' | 'INSPECT') => void;
+  setCorridorFocus: (index: number) => void;
+  updateCorridorCamera: (x: number) => void;
+  setCorridorDragging: (isDragging: boolean) => void;
+  setCorridorInspectRotation: (rotation: { x: number; y: number }) => void;
+
   reset: () => void;
 };
 
@@ -46,6 +81,16 @@ export const useStore = create<AppState>((set) => ({
   currentLandmark: null,
   isMicReady: false,
   isInjecting: false,
+  uploadedPhoto: null,
+  isPhotoMode: false,
+  isPhotoChoicePanelOpen: false,
+  pendingLandmark: null,
+  photoMemories: [],
+  corridorMode: 'CORRIDOR',
+  corridorFocusIndex: 0,
+  corridorCameraX: 0,
+  corridorIsDragging: false,
+  corridorInspectRotation: { x: 0, y: 0 },
 
   startJourney: () => set({ phase: 'transition' }),
   completeTransition: () => set({ phase: 'emitter' }),
@@ -67,6 +112,42 @@ export const useStore = create<AppState>((set) => ({
   backToEmitter: () => set({ phase: 'emitter', isInjecting: false, currentElement: null }),
   backToSelection: () => set({ phase: 'selection', currentLandmark: null }),
   backToShards: () => set({ phase: 'shards', currentLandmark: null }),
-  
-  reset: () => set({ phase: 'entry', currentElement: null, currentLandmark: null, isMicReady: false, isInjecting: false }),
+
+  // Photo Actions Implementation
+  uploadPhoto: (photoUrl) => set({ uploadedPhoto: photoUrl, isPhotoMode: true }),
+  togglePhotoMode: () => set((state) => ({ isPhotoMode: !state.isPhotoMode })),
+  clearPhoto: () => set({ uploadedPhoto: null, isPhotoMode: false }),
+
+  // Photo Choice Panel Actions Implementation
+  openPhotoChoicePanel: (landmark) => set({ isPhotoChoicePanelOpen: true, pendingLandmark: landmark }),
+  closePhotoChoicePanel: () => set({ isPhotoChoicePanelOpen: false, pendingLandmark: null }),
+
+  // Time Corridor - Photo History Actions Implementation
+  addPhotoMemory: (photo) => {
+    try {
+      const newMemory = savePhotoMemory(photo);
+      console.log('[Time Corridor] Photo saved to memory:', newMemory.id, newMemory.landmark.name);
+      set((state) => ({
+        photoMemories: [newMemory, ...state.photoMemories].slice(0, 50)
+      }));
+    } catch (error) {
+      console.error('Failed to add photo memory:', error);
+    }
+  },
+  loadMemoriesFromStorage: () => {
+    try {
+      const memories = loadPhotoMemories();
+      console.log('[Time Corridor] Loading memories from storage:', memories.length, 'photos');
+      set({ photoMemories: memories });
+    } catch (error) {
+      console.error('Failed to load memories:', error);
+    }
+  },
+  setCorridorMode: (mode) => set({ corridorMode: mode }),
+  setCorridorFocus: (index) => set({ corridorFocusIndex: index }),
+  updateCorridorCamera: (x) => set({ corridorCameraX: x }),
+  setCorridorDragging: (isDragging) => set({ corridorIsDragging: isDragging }),
+  setCorridorInspectRotation: (rotation) => set({ corridorInspectRotation: rotation }),
+
+  reset: () => set({ phase: 'entry', currentElement: null, currentLandmark: null, isMicReady: false, isInjecting: false, uploadedPhoto: null, isPhotoMode: false, isPhotoChoicePanelOpen: false, pendingLandmark: null, corridorMode: 'CORRIDOR', corridorFocusIndex: 0, corridorCameraX: 0, corridorIsDragging: false, corridorInspectRotation: { x: 0, y: 0 } }),
 }));

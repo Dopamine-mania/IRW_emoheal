@@ -4,7 +4,8 @@ import * as THREE from 'three';
 import { useStore, ElementType } from '../store';
 import { TheCore } from './TheCore'; // Reuse the core as the "Aura Orb"
 import { EnergyBody } from './EnergyBody'; // Chakra Particle Body
-import { StarRiver } from './StarRiver'; // Background Layer
+import { StarRiver } from './StarRiver'; // Background Layer (default)
+import { PhotoBackgroundParticles } from './PhotoBackgroundParticles'; // Background Layer (photo mode)
 import { LandmarkParticles } from './LandmarkParticles'; // Mid-ground Far Layer
 
 const ELEMENT_COLORS: Record<ElementType, string> = {
@@ -17,6 +18,7 @@ const ELEMENT_COLORS: Record<ElementType, string> = {
 
 export const SceneWorld: React.FC = () => {
   const currentElement = useStore(state => state.currentElement) || 'wood';
+  const uploadedPhoto = useStore(state => state.uploadedPhoto);
   const color = ELEMENT_COLORS[currentElement];
   const energyBodyPosition = new THREE.Vector3(0, -0.5, 0);
 
@@ -29,9 +31,13 @@ export const SceneWorld: React.FC = () => {
 
       <ambientLight intensity={0.1} />
 
-      {/* ===== LAYER 1: Background - Star River ===== */}
-      {/* Infinite particle field wrapping entire space */}
-      <StarRiver />
+      {/* ===== LAYER 1: Background - Particle Field ===== */}
+      {/* 照片粒子 or 星河粒子 */}
+      {uploadedPhoto ? (
+        <PhotoBackgroundParticles imageUrl={uploadedPhoto} />
+      ) : (
+        <StarRiver />
+      )}
 
       {/* ===== LAYER 2: Mid-ground Far - Landmark Particles ===== */}
       {/* Curved backdrop (e.g., Great Wall for Earth element) */}
@@ -44,11 +50,11 @@ export const SceneWorld: React.FC = () => {
       />
 
       {/* ===== LAYER 3: Mid-ground Near - Energy Body ===== */}
-      {/* The Chakra Particle Energy Body (脉轮粒子能量体) */}
-      {/* Main focal point - meditation pose with chakra glow */}
+      {/* The Chakra Particle Energy Body (脉轮粒子能量体) - Main focal point */}
+      {/* Always visible, even when photo particles are present */}
       <group position={[energyBodyPosition.x, energyBodyPosition.y, energyBodyPosition.z]}>
         <EnergyBody />
-        {/* Rim light to enhance visibility */}
+        {/* Rim lights to enhance visibility */}
         <pointLight position={[2, 2, 2]} color={color} intensity={0.5} distance={5} />
         <pointLight position={[-2, 2, 2]} color={color} intensity={0.5} distance={5} />
       </group>

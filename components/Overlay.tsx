@@ -2,6 +2,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useStore, ElementType } from '../store';
 import { PlayerHUD } from './PlayerHUD';
+import { PhotoChoicePanel } from './PhotoChoicePanel';
+import { PhotoDeconstruction } from './PhotoDeconstruction';
 
 const ELEMENT_COLORS: Record<ElementType, string> = {
   wood: '#22d3ee',
@@ -25,6 +27,10 @@ export const Overlay: React.FC = () => {
   const currentElement = useStore((state) => state.currentElement);
   const currentLandmark = useStore((state) => state.currentLandmark);
   const enterWorld = useStore((state) => state.enterWorld);
+  const uploadedPhoto = useStore((state) => state.uploadedPhoto);
+  const isPhotoChoicePanelOpen = useStore((state) => state.isPhotoChoicePanelOpen);
+  const pendingLandmark = useStore((state) => state.pendingLandmark);
+  const closePhotoChoicePanel = useStore((state) => state.closePhotoChoicePanel);
   
   // Navigation Actions
   const backToEntry = useStore((state) => state.backToEntry);
@@ -80,36 +86,30 @@ export const Overlay: React.FC = () => {
 
     // --- TUNING SEQUENCE LOGIC ---
     if (phase === 'tuning' && currentElement && currentLandmark) {
-        setTransitionDuration('1000ms');
+        setTransitionDuration('500ms');
         setOverlayColor('#000000');
         setOverlayOpacity(1); // Go to Black
-        
+
         const freq = ELEMENT_FREQUENCIES[currentElement];
-        
-        // Sequence Timers
+
+        // Sequence Timers - 一次显示一行，每行2秒（总时长8s）
         const steps = [
-            `> Target Located: ${currentLandmark.name}...`,
-            `> Analyzing Energy Field...`,
-            `> Calibrating to ${freq}...`,
-            `> Connection Established.`
+            { text: `> Target Located: ${currentLandmark.name}...`, delay: 200 },      // 第1行 (0-2s)
+            { text: `> Analyzing Energy Field...`, delay: 2200 },                      // 第2行 (2-4s)
+            { text: `> Calibrating to ${freq}...`, delay: 4200 },                      // 第3行 (4-6s)
+            { text: `> Connection Established.`, delay: 6200 }                         // 第4行 (6-8s)
         ];
-        
+
         setTuningLines([]); // Reset
-        
-        let delay = 1000; // Start after fade to black
-        
-        steps.forEach((line, i) => {
+
+        steps.forEach(({ text, delay }) => {
             setTimeout(() => {
-                setTuningLines(prev => [...prev, line]);
+                setTuningLines([text]); // 只显示当前行（替换模式）
             }, delay);
-            delay += 800; // Delay between lines
         });
-        
-        // Final transition to World
-        setTimeout(() => {
-            enterWorld(); // Change Phase to Resonance
-        }, delay + 1000);
-        
+
+        // Note: enterWorld() 现在由 PhotoDeconstruction 组件在动画结束后调用
+
         return;
     }
 
@@ -127,13 +127,16 @@ export const Overlay: React.FC = () => {
     }
     
     if (phase === 'timeCorridor') {
-        setTransitionDuration('1500ms');
-        setOverlayColor('#050505');
-        const timer = setTimeout(() => {
-            setOverlayOpacity(1);
-            setMessage("ENTERING TIME CORRIDOR");
-        }, 1800);
-        return () => clearTimeout(timer);
+        setTransitionDuration('800ms');
+        setOverlayColor('#000000');
+        setOverlayOpacity(1);
+
+        // 淡出显示场景
+        const fadeOutTimer = setTimeout(() => {
+            setOverlayOpacity(0);
+        }, 300);
+
+        return () => clearTimeout(fadeOutTimer);
     }
 
   }, [phase, currentElement, currentLandmark, enterWorld]);
@@ -176,32 +179,47 @@ export const Overlay: React.FC = () => {
         </button>
       )}
 
-      {/* The Overlay Curtain */}
-      <div 
-        className="absolute inset-0 pointer-events-none ease-out z-20 flex items-center justify-center"
-        style={{ 
-            opacity: overlayOpacity, 
+      {/* PhotoDeconstruction - 照片解构动画 */}
+      {phase === 'tuning' && uploadedPhoto && (
+        <PhotoDeconstruction />
+      )}
+
+      {/* The Overlay Curtain - 黑色背景 */}
+      <div
+        className="absolute inset-0 pointer-events-none ease-out z-20"
+        style={{
+            opacity: overlayOpacity,
             backgroundColor: overlayColor,
             transitionDuration: transitionDuration,
             transitionProperty: 'opacity'
         }}
-      >
-        {/* TUNING TYPEWRITER UI */}
-        {phase === 'tuning' && currentElement && (
-            <div className="text-left font-mono z-30 p-10 max-w-2xl">
-                {tuningLines.map((line, i) => (
-                    <div 
-                        key={i} 
-                        className="text-lg md:text-2xl mb-2 tracking-widest animate-pulse"
-                        style={{ color: ELEMENT_COLORS[currentElement] }}
-                    >
-                        {line}
-                    </div>
-                ))}
-                <div className="w-2 h-6 bg-white animate-bounce inline-block ml-1" />
-            </div>
-        )}
-      </div>
+      />
+
+      {/* TUNING TYPEWRITER UI - 底部HUD终端 */}
+      {phase === 'tuning' && currentElement && (
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 pointer-events-none z-30 w-full max-w-2xl px-8">
+          <div
+            className="text-left font-mono p-6 rounded-lg border"
+            style={{
+              background: 'rgba(0, 0, 0, 0.6)',
+              backdropFilter: 'blur(10px)',
+              borderColor: `${ELEMENT_COLORS[currentElement]}33`,
+              boxShadow: `0 0 20px ${ELEMENT_COLORS[currentElement]}22`
+            }}
+          >
+            {tuningLines.map((line, i) => (
+              <div
+                key={i}
+                className="text-base md:text-lg mb-2 tracking-widest animate-pulse"
+                style={{ color: ELEMENT_COLORS[currentElement] }}
+              >
+                {line}
+              </div>
+            ))}
+            <div className="w-2 h-5 bg-white animate-bounce inline-block ml-1" />
+          </div>
+        </div>
+      )}
       
       {/* Resonance Title */}
       {phase === 'resonance' && overlayOpacity < 0.8 && currentLandmark && (
@@ -227,6 +245,13 @@ export const Overlay: React.FC = () => {
       {phase === 'resonance' && overlayOpacity < 0.5 && currentElement && (
         <PlayerHUD />
       )}
+
+      {/* PhotoChoicePanel - Energy Transformation Terminal */}
+      <PhotoChoicePanel
+        isOpen={isPhotoChoicePanelOpen}
+        selectedLandmark={pendingLandmark}
+        onClose={closePhotoChoicePanel}
+      />
     </>
   );
 };

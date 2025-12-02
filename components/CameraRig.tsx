@@ -19,6 +19,9 @@ export const CameraRig: React.FC = () => {
     // Disable parallax during major transitions to prevent fighting GSAP
     if (isTransitioning.current) return;
 
+    // Disable parallax for timeCorridor - it has its own camera control
+    if (phase === 'timeCorridor') return;
+
     // Phase 1 Parallax (Portal)
     if (phase === 'entry') {
       state.camera.position.lerp(

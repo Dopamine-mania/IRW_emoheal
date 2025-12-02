@@ -225,9 +225,9 @@ const LandmarkNode: React.FC<{
 
 export const SceneShards: React.FC = () => {
     const { camera } = useThree();
-    const startTuning = useStore(state => state.startTuning);
+    const openPhotoChoicePanel = useStore(state => state.openPhotoChoicePanel);
     const currentElement = useStore(state => state.currentElement) || 'fire';
-    
+
     // Explicitly typed access
     const config = ELEMENT_CONFIG[currentElement];
 
@@ -237,14 +237,8 @@ export const SceneShards: React.FC = () => {
     }, [camera]);
 
     const handleNodeClick = (pos: THREE.Vector3, landmark: LandmarkData) => {
-        gsap.to(camera.position, {
-            x: pos.x, y: pos.y, z: pos.z,
-            duration: 1.5,
-            ease: "expo.in",
-            onComplete: () => {
-                startTuning(landmark);
-            }
-        });
+        // Open photo choice panel instead of going directly to tuning
+        openPhotoChoicePanel(landmark);
     };
 
     return (

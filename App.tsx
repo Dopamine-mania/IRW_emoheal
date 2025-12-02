@@ -1,5 +1,5 @@
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { useStore } from './store';
 import { SceneEntry } from './components/SceneEntry';
@@ -7,12 +7,19 @@ import { SceneEmitter } from './components/SceneEmitter';
 import { SceneSelection } from './components/SceneSelection';
 import { SceneShards } from './components/SceneShards';
 import { SceneWorld } from './components/SceneWorld';
+import { SceneTimeCorridor } from './components/SceneTimeCorridor';
 import { Effects } from './components/Effects';
 import { Overlay } from './components/Overlay';
 import { CameraRig } from './components/CameraRig';
 
 const App: React.FC = () => {
   const phase = useStore((state) => state.phase);
+  const loadMemoriesFromStorage = useStore((state) => state.loadMemoriesFromStorage);
+
+  // 初始化：从localStorage加载照片历史
+  useEffect(() => {
+    loadMemoriesFromStorage();
+  }, [loadMemoriesFromStorage]);
 
   return (
     <div className="relative w-full h-full bg-black">
@@ -28,8 +35,11 @@ const App: React.FC = () => {
           {/* Phase 1: Portal Entry */}
           {(phase === 'entry' || phase === 'transition') && <SceneEntry />}
           
-          {/* Phase 2: The Emitter / Earth / Time Corridor */}
-          {(phase === 'emitter' || phase === 'timeCorridor') && <SceneEmitter />}
+          {/* Phase 2: The Emitter / Earth */}
+          {phase === 'emitter' && <SceneEmitter />}
+
+          {/* Phase 2.5: Time Corridor (Photo Gallery) */}
+          {phase === 'timeCorridor' && <SceneTimeCorridor />}
           
           {/* Phase 3: Selection Ring */}
           {phase === 'selection' && <SceneSelection />}
