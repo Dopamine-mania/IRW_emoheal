@@ -1,6 +1,7 @@
 
 import { create } from 'zustand';
 import { PhotoMemory, loadPhotoMemories, savePhotoMemory, deletePhotoMemory as deletePhotoFromStorage } from './utils/storage';
+import { MusicTrack } from './utils/musicLibrary';
 
 export type ElementType = 'wood' | 'fire' | 'earth' | 'metal' | 'water';
 
@@ -36,6 +37,11 @@ type AppState = {
   corridorCameraX: number;
   corridorIsDragging: boolean;
   corridorInspectRotation: { x: number; y: number };
+
+  // Music Playback state
+  currentTrack: MusicTrack | null;
+  isPlaying: boolean;
+  currentTime: number;
 
   // Actions
   startJourney: () => void;
@@ -73,6 +79,11 @@ type AppState = {
   setCorridorDragging: (isDragging: boolean) => void;
   setCorridorInspectRotation: (rotation: { x: number; y: number }) => void;
 
+  // Music Playback Actions
+  setCurrentTrack: (track: MusicTrack | null) => void;
+  setIsPlaying: (playing: boolean) => void;
+  setCurrentTime: (time: number) => void;
+
   reset: () => void;
 };
 
@@ -92,6 +103,9 @@ export const useStore = create<AppState>((set) => ({
   corridorCameraX: 0,
   corridorIsDragging: false,
   corridorInspectRotation: { x: 0, y: 0 },
+  currentTrack: null,
+  isPlaying: false,
+  currentTime: 0,
 
   startJourney: () => set({ phase: 'transition' }),
   completeTransition: () => set({ phase: 'emitter' }),
@@ -170,5 +184,10 @@ export const useStore = create<AppState>((set) => ({
   setCorridorDragging: (isDragging) => set({ corridorIsDragging: isDragging }),
   setCorridorInspectRotation: (rotation) => set({ corridorInspectRotation: rotation }),
 
-  reset: () => set({ phase: 'entry', currentElement: null, currentLandmark: null, isMicReady: false, isInjecting: false, uploadedPhoto: null, isPhotoMode: false, isPhotoChoicePanelOpen: false, pendingLandmark: null, corridorMode: 'CORRIDOR', corridorFocusIndex: 0, corridorCameraX: 0, corridorIsDragging: false, corridorInspectRotation: { x: 0, y: 0 } }),
+  // Music Playback Actions Implementation
+  setCurrentTrack: (track) => set({ currentTrack: track }),
+  setIsPlaying: (playing) => set({ isPlaying: playing }),
+  setCurrentTime: (time) => set({ currentTime: time }),
+
+  reset: () => set({ phase: 'entry', currentElement: null, currentLandmark: null, isMicReady: false, isInjecting: false, uploadedPhoto: null, isPhotoMode: false, isPhotoChoicePanelOpen: false, pendingLandmark: null, corridorMode: 'CORRIDOR', corridorFocusIndex: 0, corridorCameraX: 0, corridorIsDragging: false, corridorInspectRotation: { x: 0, y: 0 }, currentTrack: null, isPlaying: false, currentTime: 0 }),
 }));

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import * as THREE from 'three';
 import { useStore, ElementType } from '../store';
 import { TheCore } from './TheCore'; // Reuse the core as the "Aura Orb"
@@ -7,6 +7,9 @@ import { EnergyBody } from './EnergyBody'; // Chakra Particle Body
 import { StarRiver } from './StarRiver'; // Background Layer (default)
 import { PhotoBackgroundParticles } from './PhotoBackgroundParticles'; // Background Layer (photo mode)
 import { LandmarkParticles } from './LandmarkParticles'; // Mid-ground Far Layer
+import { getRandomTrack } from '../utils/musicLibrary';
+import { useMusicPlayer } from '../hooks/useMusicPlayer';
+import { useAudioAnalyzer } from '../hooks/useAudioAnalyzer';
 
 const ELEMENT_COLORS: Record<ElementType, string> = {
   wood: '#22d3ee',
@@ -19,8 +22,26 @@ const ELEMENT_COLORS: Record<ElementType, string> = {
 export const SceneWorld: React.FC = () => {
   const currentElement = useStore(state => state.currentElement) || 'wood';
   const uploadedPhoto = useStore(state => state.uploadedPhoto);
+  const setCurrentTrack = useStore(state => state.setCurrentTrack);
+  const setIsPlaying = useStore(state => state.setIsPlaying);
   const color = ELEMENT_COLORS[currentElement];
   const energyBodyPosition = new THREE.Vector3(0, -0.5, 0);
+
+  // 初始化音乐播放器和音频分析器
+  const { audioElement } = useMusicPlayer();
+  const { getAudioData } = useAudioAnalyzer(audioElement);
+
+  // 进入场景时随机选歌并播放
+  useEffect(() => {
+    const track = getRandomTrack(currentElement);
+    setCurrentTrack(track);
+    setIsPlaying(true);
+
+    // 离开场景时停止播放
+    return () => {
+      setIsPlaying(false);
+    };
+  }, [currentElement, setCurrentTrack, setIsPlaying]);
 
   return (
     <>

@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useStore, ElementType } from '../store';
+import { useMusicPlayer } from '../hooks/useMusicPlayer';
+import { getNextTrack, getPreviousTrack } from '../utils/musicLibrary';
 
 // Element metadata for display
 const ELEMENT_INFO: Record<ElementType, { name: string; icon: string; color: string }> = {
@@ -10,41 +12,93 @@ const ELEMENT_INFO: Record<ElementType, { name: string; icon: string; color: str
   water: { name: '水', icon: '💧', color: '#3b82f6' }
 };
 
-const ELEMENT_TRACKS: Record<ElementType, string> = {
-  wood: 'Forest Meditation - Bamboo Whispers',
-  fire: 'Fire Resonance - Heart Awakening',
-  earth: 'Earth Grounding - Mountain Echoes',
-  metal: 'Metal Clarity - Crystal Breath',
-  water: 'Water Flow - Ocean Depths'
-};
-
 export const PlayerHUD: React.FC = () => {
   const currentElement = useStore(state => state.currentElement) || 'water';
-  const isMicReady = useStore(state => state.isMicReady);
-  const setMicReady = useStore(state => state.setMicReady);
+  const currentTrack = useStore(state => state.currentTrack);
+  const isPlaying = useStore(state => state.isPlaying);
+  const currentTime = useStore(state => state.currentTime);
+  const setIsPlaying = useStore(state => state.setIsPlaying);
+  const setCurrentTrack = useStore(state => state.setCurrentTrack);
 
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const { seekTo } = useMusicPlayer();
+
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragProgress, setDragProgress] = useState(0);
+  const progressBarRef = useRef<HTMLDivElement>(null);
 
   const elementInfo = ELEMENT_INFO[currentElement];
-  const trackName = ELEMENT_TRACKS[currentElement];
+  const trackName = currentTrack?.title || 'Loading...';
+  const duration = currentTrack?.duration || 180;
 
-  // Simulate progress for now (since we're using mic input)
-  useEffect(() => {
-    if (isPlaying) {
-      const interval = setInterval(() => {
-        setProgress(prev => (prev >= 100 ? 0 : prev + 0.5));
-      }, 200);
-      return () => clearInterval(interval);
-    }
-  }, [isPlaying]);
+  // 修复闪烁：当拖动时使用拖动进度，否则使用实际播放进度
+  const displayProgress = isDragging ? dragProgress : (currentTime / duration) * 100;
 
   const handlePlayPause = () => {
-    if (!isMicReady && !isPlaying) {
-      // Request microphone access on first play
-      setMicReady(true);
-    }
     setIsPlaying(!isPlaying);
+  };
+
+  const handleNextTrack = () => {
+    if (currentTrack) {
+      const nextTrack = getNextTrack(currentElement, currentTrack.id);
+      setCurrentTrack(nextTrack);
+      setIsPlaying(true);
+    }
+  };
+
+  const handlePreviousTrack = () => {
+    if (currentTrack) {
+      const previousTrack = getPreviousTrack(currentElement, currentTrack.id);
+      setCurrentTrack(previousTrack);
+      setIsPlaying(true);
+    }
+  };
+
+  const calculateProgress = (clientX: number) => {
+    if (!progressBarRef.current) return 0;
+    const rect = progressBarRef.current.getBoundingClientRect();
+    const clickX = clientX - rect.left;
+    const percentage = Math.max(0, Math.min(1, clickX / rect.width));
+    return percentage;
+  };
+
+  const handleProgressMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    setIsDragging(true);
+    const percentage = calculateProgress(e.clientX);
+    setDragProgress(percentage * 100);
+  };
+
+  const handleProgressMouseMove = (e: MouseEvent) => {
+    if (isDragging) {
+      const percentage = calculateProgress(e.clientX);
+      setDragProgress(percentage * 100);
+    }
+  };
+
+  const handleProgressMouseUp = (e: MouseEvent) => {
+    if (isDragging) {
+      const percentage = calculateProgress(e.clientX);
+      const newTime = percentage * duration;
+      seekTo(newTime);
+      setIsDragging(false);
+    }
+  };
+
+  // 添加全局鼠标事件监听
+  React.useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleProgressMouseMove);
+      window.addEventListener('mouseup', handleProgressMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleProgressMouseMove);
+        window.removeEventListener('mouseup', handleProgressMouseUp);
+      };
+    }
+  }, [isDragging, duration]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${String(secs).padStart(2, '0')}`;
   };
 
   return (
@@ -110,6 +164,36 @@ export const PlayerHUD: React.FC = () => {
           {elementInfo.icon}
         </div>
 
+        {/* Previous Track Button */}
+        <button
+          onClick={handlePreviousTrack}
+          style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            background: 'rgba(255, 255, 255, 0.1)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            flexShrink: 0,
+            color: 'white',
+            fontSize: '16px'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = `${elementInfo.color}33`;
+            e.currentTarget.style.transform = 'scale(1.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+        >
+          ⏮
+        </button>
+
         {/* Play/Pause Button (Center) */}
         <button
           onClick={handlePlayPause}
@@ -142,6 +226,36 @@ export const PlayerHUD: React.FC = () => {
           {isPlaying ? '⏸' : '▶'}
         </button>
 
+        {/* Next Track Button */}
+        <button
+          onClick={handleNextTrack}
+          style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            background: 'rgba(255, 255, 255, 0.1)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            flexShrink: 0,
+            color: 'white',
+            fontSize: '16px'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = `${elementInfo.color}33`;
+            e.currentTarget.style.transform = 'scale(1.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+        >
+          ⏭
+        </button>
+
         {/* Progress Bar Container (Right) */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {/* Element Name */}
@@ -159,23 +273,26 @@ export const PlayerHUD: React.FC = () => {
 
           {/* Progress Bar */}
           <div
+            ref={progressBarRef}
+            onMouseDown={handleProgressMouseDown}
             style={{
               width: '100%',
               height: '6px',
               background: 'rgba(255, 255, 255, 0.1)',
               borderRadius: '3px',
               overflow: 'hidden',
-              position: 'relative'
+              position: 'relative',
+              cursor: 'pointer'
             }}
           >
             {/* Progress Fill */}
             <div
               style={{
                 height: '100%',
-                width: `${progress}%`,
+                width: `${displayProgress}%`,
                 background: `linear-gradient(90deg, ${elementInfo.color}, ${elementInfo.color}cc)`,
                 borderRadius: '3px',
-                transition: 'width 0.2s linear',
+                transition: isDragging ? 'none' : 'width 0.1s linear',
                 boxShadow: `0 0 8px ${elementInfo.color}88`
               }}
             />
@@ -204,8 +321,8 @@ export const PlayerHUD: React.FC = () => {
               fontWeight: '300'
             }}
           >
-            <span>{Math.floor(progress / 100 * 180 / 60)}:{String(Math.floor(progress / 100 * 180 % 60)).padStart(2, '0')}</span>
-            <span>3:00</span>
+            <span>{formatTime(currentTime)}</span>
+            <span>{formatTime(duration)}</span>
           </div>
         </div>
       </div>
