@@ -4,7 +4,6 @@ import { StarRiver } from './StarRiver';
 import { TheCore } from './TheCore';
 import { PhotoCorridor } from './PhotoCorridor';
 import { CorridorCamera } from './CorridorCamera';
-import { CorridorHUD } from './CorridorHUD';
 
 /**
  * SceneTimeCorridor - 时间回廊主场景
@@ -50,9 +49,6 @@ export const SceneTimeCorridor: React.FC = () => {
         <TheCore />
         <pointLight color="#4ecdc4" intensity={2} distance={30} />
       </group>
-
-      {/* UI层 - 直接在3D场景中渲染HTML */}
-      <CorridorHUD />
     </>
   );
 };

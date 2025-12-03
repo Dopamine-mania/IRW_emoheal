@@ -1,5 +1,4 @@
 import React from 'react';
-import { Html } from '@react-three/drei';
 import { useStore, ElementType } from '../store';
 
 // 元素颜色配置
@@ -29,12 +28,23 @@ export const CorridorHUD: React.FC = () => {
   const corridorMode = useStore(state => state.corridorMode);
   const corridorFocusIndex = useStore(state => state.corridorFocusIndex);
   const backToEmitter = useStore(state => state.backToEmitter);
+  const deletePhotoMemory = useStore(state => state.deletePhotoMemory);
 
   const focusedPhoto = photoMemories[corridorFocusIndex];
 
+  const handleDelete = () => {
+    if (focusedPhoto && window.confirm(`Delete photo from ${focusedPhoto.landmark.name}?`)) {
+      deletePhotoMemory(focusedPhoto.id);
+    }
+  };
+
   return (
-    <Html fullscreen>
-      <div style={{ pointerEvents: 'none' }}>
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      pointerEvents: 'none',
+      zIndex: 100
+    }}>
         {/* 顶部标题 */}
         <div
           style={{
@@ -152,16 +162,44 @@ export const CorridorHUD: React.FC = () => {
               boxShadow: `0 0 30px ${ELEMENT_COLORS[focusedPhoto.element]}22`
             }}
           >
-            <h3
-              style={{
-                fontSize: '20px',
-                fontFamily: 'monospace',
-                color: 'white',
-                marginBottom: '12px'
-              }}
-            >
-              {focusedPhoto.landmark.name}
-            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+              <h3
+                style={{
+                  fontSize: '20px',
+                  fontFamily: 'monospace',
+                  color: 'white',
+                  margin: 0
+                }}
+              >
+                {focusedPhoto.landmark.name}
+              </h3>
+              <button
+                onClick={handleDelete}
+                style={{
+                  padding: '6px 12px',
+                  fontFamily: 'monospace',
+                  fontSize: '11px',
+                  letterSpacing: '1px',
+                  color: '#f43f5e',
+                  background: 'rgba(244, 63, 94, 0.1)',
+                  border: '1px solid rgba(244, 63, 94, 0.3)',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  pointerEvents: 'auto',
+                  transition: 'all 0.3s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(244, 63, 94, 0.2)';
+                  e.currentTarget.style.borderColor = 'rgba(244, 63, 94, 0.6)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(244, 63, 94, 0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(244, 63, 94, 0.3)';
+                }}
+              >
+                🗑 DELETE
+              </button>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span
                 style={{
@@ -215,7 +253,6 @@ export const CorridorHUD: React.FC = () => {
             </p>
           </div>
         )}
-      </div>
-    </Html>
+    </div>
   );
 };

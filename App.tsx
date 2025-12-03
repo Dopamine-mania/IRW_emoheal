@@ -10,6 +10,7 @@ import { SceneWorld } from './components/SceneWorld';
 import { SceneTimeCorridor } from './components/SceneTimeCorridor';
 import { Effects } from './components/Effects';
 import { Overlay } from './components/Overlay';
+import { CorridorHUD } from './components/CorridorHUD';
 import { CameraRig } from './components/CameraRig';
 
 const App: React.FC = () => {
@@ -60,6 +61,9 @@ const App: React.FC = () => {
 
       {/* HTML Overlay for Flash/Fade effects and UI */}
       <Overlay />
+
+      {/* Time Corridor HUD - Rendered outside Canvas */}
+      {phase === 'timeCorridor' && <CorridorHUD />}
     </div>
   );
 };

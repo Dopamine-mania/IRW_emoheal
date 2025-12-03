@@ -149,7 +149,8 @@ export const Overlay: React.FC = () => {
       if (phase === 'timeCorridor') backToEmitter();
   };
 
-  const showBackButton = ['emitter', 'selection', 'shards', 'resonance', 'timeCorridor'].includes(phase);
+  // timeCorridor 有自己的返回按钮在 CorridorHUD 中，这里不显示
+  const showBackButton = ['emitter', 'selection', 'shards', 'resonance'].includes(phase);
 
   return (
     <>

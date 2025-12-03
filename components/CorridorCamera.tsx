@@ -21,10 +21,13 @@ export const CorridorCamera: React.FC = () => {
   const setCorridorInspectRotation = useStore(state => state.setCorridorInspectRotation);
 
   const isDraggingRef = useRef(false);
+  const hasMovedRef = useRef(false); // 是否发生了实际移动
   const startXRef = useRef(0);
   const startYRef = useRef(0);
   const startCameraXRef = useRef(0);
   const startRotationRef = useRef({ x: 0, y: 0 });
+
+  const DRAG_THRESHOLD = 5; // 移动超过5px才认为是拖拽
 
   // 监听拖拽状态同步
   useEffect(() => {
@@ -34,7 +37,9 @@ export const CorridorCamera: React.FC = () => {
   // 鼠标/触摸事件处理
   useEffect(() => {
     const handlePointerDown = (e: PointerEvent) => {
+      // 只记录起始位置，不立即设置为拖拽状态
       isDraggingRef.current = true;
+      hasMovedRef.current = false;
       startXRef.current = e.clientX;
       startYRef.current = e.clientY;
       startCameraXRef.current = corridorCameraX;
@@ -44,9 +49,17 @@ export const CorridorCamera: React.FC = () => {
     const handlePointerMove = (e: PointerEvent) => {
       if (!isDraggingRef.current) return;
 
+      const deltaX = e.clientX - startXRef.current;
+      const deltaY = e.clientY - startYRef.current;
+      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+      // 只有移动距离超过阈值才认为是拖拽
+      if (distance < DRAG_THRESHOLD) return;
+
+      hasMovedRef.current = true;
+
       if (corridorMode === 'CORRIDOR') {
         // 走廊模式：拖拽改变相机X轴
-        const deltaX = e.clientX - startXRef.current;
         // 拖拽灵敏度：鼠标移动 100px = 相机移动 2 单位
         const newX = startCameraXRef.current - deltaX * 0.02;
 
@@ -58,9 +71,6 @@ export const CorridorCamera: React.FC = () => {
         updateCorridorCamera(clampedX);
       } else if (corridorMode === 'INSPECT') {
         // 鉴赏模式：拖拽旋转照片
-        const deltaX = e.clientX - startXRef.current;
-        const deltaY = e.clientY - startYRef.current;
-
         setCorridorInspectRotation({
           x: startRotationRef.current.x - deltaY * 0.005,
           y: startRotationRef.current.y + deltaX * 0.01
@@ -70,9 +80,13 @@ export const CorridorCamera: React.FC = () => {
 
     const handlePointerUp = () => {
       if (!isDraggingRef.current) return;
-      isDraggingRef.current = false;
 
-      if (corridorMode === 'CORRIDOR' && photoMemories.length > 0) {
+      const wasDragging = hasMovedRef.current;
+      isDraggingRef.current = false;
+      hasMovedRef.current = false;
+
+      // 只有真正拖拽过才执行磁吸对齐
+      if (wasDragging && corridorMode === 'CORRIDOR' && photoMemories.length > 0) {
         // 磁吸对齐到最近照片
         snapToNearestPhoto();
       }
@@ -96,6 +110,9 @@ export const CorridorCamera: React.FC = () => {
     const nearestIndex = Math.round(corridorCameraX / SPACING);
     const clampedIndex = Math.max(0, Math.min(photoMemories.length - 1, nearestIndex));
     const targetX = clampedIndex * SPACING;
+
+    // 立即更新焦点以防止闪烁
+    useStore.getState().setCorridorFocus(clampedIndex);
 
     // GSAP 平滑过渡
     gsap.to({ x: corridorCameraX }, {
@@ -126,14 +143,18 @@ export const CorridorCamera: React.FC = () => {
     camera.position.x += (corridorCameraX - camera.position.x) * 0.1;
 
     // 根据模式调整相机Z轴（拉近/拉远）
-    const targetZ = corridorMode === 'INSPECT' ? 8 : 15;
+    // INSPECT 模式保持在 12，不需要太近，照片 scale=1.0
+    const targetZ = corridorMode === 'INSPECT' ? 12 : 15;
     camera.position.z += (targetZ - camera.position.z) * 0.05;
 
     // 相机Y轴保持在0
     camera.position.y += (0 - camera.position.y) * 0.1;
 
-    // 相机始终看向原点
-    camera.lookAt(corridorCameraX, 0, 0);
+    // 相机看向的目标位置
+    // INSPECT 模式：看向被选中照片的位置
+    // CORRIDOR 模式：看向相机当前 X 位置
+    const lookAtX = corridorMode === 'INSPECT' ? corridorFocusIndex * SPACING : corridorCameraX;
+    camera.lookAt(lookAtX, 0, 0);
   });
 
   return null;

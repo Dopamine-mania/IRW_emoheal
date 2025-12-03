@@ -1,6 +1,6 @@
 
 import { create } from 'zustand';
-import { PhotoMemory, loadPhotoMemories, savePhotoMemory } from './utils/storage';
+import { PhotoMemory, loadPhotoMemories, savePhotoMemory, deletePhotoMemory as deletePhotoFromStorage } from './utils/storage';
 
 export type ElementType = 'wood' | 'fire' | 'earth' | 'metal' | 'water';
 
@@ -65,6 +65,7 @@ type AppState = {
 
   // Time Corridor - Photo History Actions
   addPhotoMemory: (photo: Omit<PhotoMemory, 'id' | 'timestamp'>) => void;
+  deletePhotoMemory: (id: string) => void;
   loadMemoriesFromStorage: () => void;
   setCorridorMode: (mode: 'CORRIDOR' | 'INSPECT') => void;
   setCorridorFocus: (index: number) => void;
@@ -132,6 +133,26 @@ export const useStore = create<AppState>((set) => ({
       }));
     } catch (error) {
       console.error('Failed to add photo memory:', error);
+    }
+  },
+  deletePhotoMemory: (id) => {
+    try {
+      deletePhotoFromStorage(id);
+      console.log('[Time Corridor] Photo deleted from memory:', id);
+      set((state) => {
+        const newMemories = state.photoMemories.filter(m => m.id !== id);
+        // 如果删除的是当前聚焦的照片，调整聚焦索引
+        const newFocusIndex = Math.min(state.corridorFocusIndex, newMemories.length - 1);
+        // 如果删除后没有照片了，退出 INSPECT 模式
+        const newMode = newMemories.length === 0 ? 'CORRIDOR' : state.corridorMode;
+        return {
+          photoMemories: newMemories,
+          corridorFocusIndex: Math.max(0, newFocusIndex),
+          corridorMode: newMode
+        };
+      });
+    } catch (error) {
+      console.error('Failed to delete photo memory:', error);
     }
   },
   loadMemoriesFromStorage: () => {

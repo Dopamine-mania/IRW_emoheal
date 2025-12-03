@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useStore } from '../store';
 import { PhotoFrame } from './PhotoFrame';
 import * as THREE from 'three';
@@ -29,19 +29,34 @@ export const PhotoCorridor: React.FC = () => {
   const setCorridorMode = useStore(state => state.setCorridorMode);
   const setCorridorFocus = useStore(state => state.setCorridorFocus);
 
+  // 根据相机位置实时更新聚焦照片索引（仅在实际变化时更新，防止闪烁）
+  useEffect(() => {
+    if (corridorMode === 'CORRIDOR' && photoMemories.length > 0) {
+      const nearestIndex = Math.round(corridorCameraX / SPACING);
+      const clampedIndex = Math.max(0, Math.min(photoMemories.length - 1, nearestIndex));
+
+      // 只有焦点真正变化时才更新，避免在动画期间重复设置
+      if (clampedIndex !== corridorFocusIndex) {
+        setCorridorFocus(clampedIndex);
+      }
+    }
+  }, [corridorCameraX, corridorMode, photoMemories.length, setCorridorFocus, corridorFocusIndex]);
+
   // 处理照片点击
   const handlePhotoClick = (index: number) => {
     if (corridorMode === 'CORRIDOR') {
-      // 计算照片相对相机的X位置
-      const photoX = index * SPACING;
-      const isCenterPhoto = Math.abs(photoX - corridorCameraX) < 2;
+      // 使用逻辑焦点索引而不是位置距离
+      // 这样更可靠，不受相机延迟影响
+      const isCenterPhoto = index === corridorFocusIndex;
 
-      // 只有点击中心照片才进入 INSPECT 模式
       if (isCenterPhoto) {
+        console.log('[PhotoCorridor] Entering INSPECT mode for photo:', index);
         setCorridorMode('INSPECT');
         setCorridorFocus(index);
         // 重置旋转通过 store
         useStore.getState().setCorridorInspectRotation({ x: 0, y: 0 });
+      } else {
+        console.log('[PhotoCorridor] Not focused. Current focus:', corridorFocusIndex, 'Clicked:', index);
       }
     }
   };
@@ -61,12 +76,15 @@ export const PhotoCorridor: React.FC = () => {
           // 只显示被选中的照片
           if (!isFocused) return null;
 
+          // INSPECT 模式：照片位置在被选中照片的原始 X 位置
+          const inspectX = corridorFocusIndex * SPACING;
+
           return (
             <PhotoFrame
               key={photo.id}
               imageUrl={photo.photoUrl}
-              position={[0, 0, 5]}
-              scale={1.5}
+              position={[inspectX, 0, 0]}
+              scale={1.0}
               rotation={[corridorInspectRotation.x, corridorInspectRotation.y, 0]}
               opacity={1}
               element={photo.element}
