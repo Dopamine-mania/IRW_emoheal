@@ -14,9 +14,9 @@ const ELEMENT_COLORS: Record<ElementType, string> = {
 };
 
 const ELEMENT_FREQUENCIES: Record<ElementType, string> = {
-  wood: '396Hz',
-  fire: '528Hz',
-  earth: '174Hz',
+  wood: '639Hz',
+  fire: '396Hz',
+  earth: '528Hz',
   metal: '741Hz',
   water: '417Hz'
 };

@@ -14,11 +14,11 @@ interface PhotoChoicePanelProps {
 }
 
 const ELEMENT_INFO: Record<ElementType, { name: string; color: string }> = {
-  wood: { name: '竹海', color: '#22d3ee' },
-  fire: { name: '丹霞', color: '#f43f5e' },
-  earth: { name: '长城', color: '#fbbf24' },
-  metal: { name: '雪山', color: '#e2e8f0' },
-  water: { name: '西湖', color: '#3b82f6' }
+  wood: { name: 'Bamboo Forest', color: '#22d3ee' },
+  fire: { name: 'Red Cliffs', color: '#f43f5e' },
+  earth: { name: 'Great Wall', color: '#fbbf24' },
+  metal: { name: 'Snow Mountain', color: '#e2e8f0' },
+  water: { name: 'West Lake', color: '#3b82f6' }
 };
 
 // 默认图片占位符（使用Unsplash的高质量风景图）
@@ -228,7 +228,7 @@ export const PhotoChoicePanel: React.FC<PhotoChoicePanelProps> = ({
                   letterSpacing: '0.5px'
                 }}
               >
-                使用官方频率 · 基于 {elementInfo.name} 地标能量场
+                Experience the official frequency · Based on {elementInfo.name} energy field
               </div>
             </div>
 
@@ -321,7 +321,7 @@ export const PhotoChoicePanel: React.FC<PhotoChoicePanelProps> = ({
                     letterSpacing: '0.5px'
                   }}
                 >
-                  {isUploading ? '正在处理...' : '注入个人记忆 · 此记忆将被永久封存至时光回廊'}
+                  {isUploading ? 'Processing...' : 'Upload your memory · It will be preserved in the Time Corridor'}
                 </div>
               </div>
 

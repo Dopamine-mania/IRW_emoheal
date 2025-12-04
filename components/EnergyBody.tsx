@@ -1,217 +1,351 @@
-
 import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { extend } from '@react-three/fiber';
 import { useStore, ElementType } from '../store';
-import { useAudioAnalyzer } from '../hooks/useAudioAnalyzer';
-import { BodyParticlesMaterial } from '../shaders/BodyParticlesMaterial';
 
-// Extend R3F to recognize our custom material
-extend({ BodyParticlesMaterial });
-
-// 定义五行对应的脉轮位置 (打坐姿势)
-const CHAKRA_POSITIONS: Record<ElementType, [number, number, number]> = {
-  wood: [0, 0.1, 0.35],    // Root Chakra (海底轮) - 脊椎底端 / 腿部
-  water: [0, 0.45, 0],     // Sacral Chakra (生殖轮) - 下腹部 / 肾区
-  earth: [0, 0.7, 0],      // Solar Plexus (太阳轮) - 胃部 / 肚脐
-  fire: [0, 1.0, 0],       // Heart Chakra (心轮) - 胸腔中心
-  metal: [0, 1.25, 0]      // Throat Chakra (喉轮) - 喉咙 / 肺部
+// Chakra positions (based on color-chakra mapping)
+const CHAKRA_POSITIONS: Record<ElementType, THREE.Vector3> = {
+  fire: new THREE.Vector3(0, -1.8, 0),      // Root Chakra (Base of spine)
+  water: new THREE.Vector3(0, -1.0, 0.3),   // Sacral Chakra (Lower abdomen)
+  earth: new THREE.Vector3(0, 0.2, 0.3),    // Solar Plexus (Navel area)
+  wood: new THREE.Vector3(0, 1.5, 0.2),     // Heart Chakra (Chest)
+  metal: new THREE.Vector3(0, 3.2, 0)       // Throat Chakra (Throat/Neck)
 };
 
-// 定义五行颜色
-const ELEMENT_COLORS: Record<ElementType, string> = {
-  wood: '#22d3ee',
-  water: '#3b82f6',
-  earth: '#fbbf24',
-  fire: '#f43f5e',
-  metal: '#e2e8f0'
+// Element colors
+const ELEMENT_COLORS: Record<ElementType, number> = {
+  wood: 0x4caf50,   // Green
+  fire: 0xff3300,   // Red
+  earth: 0xffd700,  // Gold/Yellow
+  metal: 0xe0e0ff,  // White/Silver
+  water: 0x2196f3   // Blue
 };
 
-// 程序化生成人形点云几何体 - 打坐姿势 (Meditation Pose)
-const createHumanoidGeometry = () => {
-  const points: THREE.Vector3[] = [];
-  const normals: THREE.Vector3[] = [];
+// Create circle texture for particles
+const createCircleTexture = () => {
+  const canvas = document.createElement('canvas');
+  canvas.width = 32;
+  canvas.height = 32;
+  const context = canvas.getContext('2d')!;
+  const gradient = context.createRadialGradient(16, 16, 0, 16, 16, 16);
+  gradient.addColorStop(0, 'rgba(255,255,255,1)');
+  gradient.addColorStop(0.5, 'rgba(255,255,255,0.5)');
+  gradient.addColorStop(1, 'rgba(0,0,0,0)');
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, 32, 32);
+  const texture = new THREE.Texture(canvas);
+  texture.needsUpdate = true;
+  return texture;
+};
 
-  // 辅助函数：在一个球体内生成点云
-  const addSphere = (centerX: number, centerY: number, centerZ: number, radius: number, density: number) => {
-    const count = Math.floor(density);
+// Generate lotus pose body geometry
+const createMeditationBodyGeometry = () => {
+  const vertices: number[] = [];
+  const sizes: number[] = [];
+  const colors: number[] = [];
+  const baseColor = new THREE.Color(0x44aaff);
+
+  const addShape = (
+    shapeType: 'sphere' | 'cylinder',
+    centerX: number,
+    centerY: number,
+    centerZ: number,
+    width: number,
+    height: number,
+    depth: number,
+    count: number
+  ) => {
     for (let i = 0; i < count; i++) {
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(2 * Math.random() - 1);
-      const r = radius * Math.cbrt(Math.random());
+      let x: number, y: number, z: number;
 
-      const x = centerX + r * Math.sin(phi) * Math.cos(theta);
-      const y = centerY + r * Math.sin(phi) * Math.sin(theta);
-      const z = centerZ + r * Math.cos(phi);
+      if (shapeType === 'sphere') {
+        const u = Math.random();
+        const v = Math.random();
+        const theta = 2 * Math.PI * u;
+        const phi = Math.acos(2 * v - 1);
+        const r = width * Math.cbrt(Math.random());
+        x = centerX + r * Math.sin(phi) * Math.cos(theta);
+        y = centerY + r * Math.sin(phi) * Math.sin(theta);
+        z = centerZ + r * Math.cos(phi);
+      } else {
+        const theta = 2 * Math.PI * Math.random();
+        const r = width * Math.sqrt(Math.random());
+        const h = height * (Math.random() - 0.5);
+        x = centerX + r * Math.cos(theta);
+        y = centerY + h;
+        z = centerZ + r * Math.sin(theta);
+      }
 
-      points.push(new THREE.Vector3(x, y, z));
+      x += (Math.random() - 0.5) * 0.05;
+      y += (Math.random() - 0.5) * 0.05;
+      z += (Math.random() - 0.5) * 0.05;
 
-      const normal = new THREE.Vector3(x - centerX, y - centerY, z - centerZ).normalize();
-      normals.push(normal);
+      vertices.push(x, y, z);
+      sizes.push(Math.random() * 0.05 + 0.01);
+      colors.push(baseColor.r, baseColor.g, baseColor.b);
     }
   };
 
-  // 辅助函数：在一个圆柱体内生成点云
-  const addCylinder = (centerX: number, centerY: number, centerZ: number, radius: number, height: number, density: number) => {
-    const count = Math.floor(density);
-    for (let i = 0; i < count; i++) {
-      const theta = Math.random() * Math.PI * 2;
-      const r = radius * Math.sqrt(Math.random());
-      const h = (Math.random() - 0.5) * height;
+  // HEAD
+  addShape('sphere', 0, 4.2, 0, 0.9, 0.9, 0.9, 600);
 
-      const x = centerX + r * Math.cos(theta);
-      const y = centerY + h;
-      const z = centerZ + r * Math.sin(theta);
+  // NECK
+  addShape('cylinder', 0, 3.2, 0, 0.35, 0.6, 0.35, 150);
 
-      points.push(new THREE.Vector3(x, y, z));
+  // TORSO (Upper)
+  addShape('cylinder', 0, 2.0, 0, 1.1, 1.8, 0.8, 1000);
 
-      const normal = new THREE.Vector3(x - centerX, 0, z - centerZ).normalize();
-      normals.push(normal);
+  // TORSO (Lower/Belly)
+  addShape('cylinder', 0, 0.5, 0.1, 1.2, 1.5, 0.9, 800);
+
+  // LEFT THIGH
+  for (let i = 0; i < 600; i++) {
+    const p = Math.random();
+    const start = new THREE.Vector3(-0.8, -0.5, 0);
+    const end = new THREE.Vector3(-2.2, -1.8, 1.2);
+    const pos = new THREE.Vector3().lerpVectors(start, end, p);
+    const r = 0.5 * Math.sin(Math.PI * p) + 0.4;
+    const theta = Math.random() * Math.PI * 2;
+    const radius = Math.random() * r;
+    pos.x += radius * Math.cos(theta);
+    pos.y += radius * Math.sin(theta);
+    pos.z += radius * 0.2;
+    vertices.push(pos.x, pos.y, pos.z);
+    sizes.push(Math.random() * 0.05);
+    colors.push(baseColor.r, baseColor.g, baseColor.b);
+  }
+
+  // RIGHT THIGH
+  for (let i = 0; i < 600; i++) {
+    const p = Math.random();
+    const start = new THREE.Vector3(0.8, -0.5, 0);
+    const end = new THREE.Vector3(2.2, -1.8, 1.2);
+    const pos = new THREE.Vector3().lerpVectors(start, end, p);
+    const r = 0.5 * Math.sin(Math.PI * p) + 0.4;
+    const theta = Math.random() * Math.PI * 2;
+    const radius = Math.random() * r;
+    pos.x += radius * Math.cos(theta);
+    pos.y += radius * Math.sin(theta);
+    pos.z += radius * 0.2;
+    vertices.push(pos.x, pos.y, pos.z);
+    sizes.push(Math.random() * 0.05);
+    colors.push(baseColor.r, baseColor.g, baseColor.b);
+  }
+
+  // LEFT SHIN
+  for (let i = 0; i < 500; i++) {
+    const p = Math.random();
+    const start = new THREE.Vector3(-2.2, -1.8, 1.2);
+    const end = new THREE.Vector3(0.5, -2.2, 1.8);
+    const pos = new THREE.Vector3().lerpVectors(start, end, p);
+    const r = 0.4;
+    const theta = Math.random() * Math.PI * 2;
+    const radius = Math.random() * r;
+    pos.x += radius * Math.cos(theta);
+    pos.y += radius * Math.sin(theta) * 0.8;
+    pos.z += radius * Math.cos(theta) * 0.5;
+    vertices.push(pos.x, pos.y, pos.z);
+    sizes.push(Math.random() * 0.05);
+    colors.push(baseColor.r, baseColor.g, baseColor.b);
+  }
+
+  // RIGHT SHIN
+  for (let i = 0; i < 500; i++) {
+    const p = Math.random();
+    const start = new THREE.Vector3(2.2, -1.8, 1.2);
+    const end = new THREE.Vector3(-0.5, -2.2, 1.8);
+    const pos = new THREE.Vector3().lerpVectors(start, end, p);
+    const r = 0.4;
+    const theta = Math.random() * Math.PI * 2;
+    const radius = Math.random() * r;
+    pos.x += radius * Math.cos(theta);
+    pos.y += radius * Math.sin(theta) * 0.8;
+    pos.z += radius * Math.cos(theta) * 0.5;
+    vertices.push(pos.x, pos.y, pos.z);
+    sizes.push(Math.random() * 0.05);
+    colors.push(baseColor.r, baseColor.g, baseColor.b);
+  }
+
+  // LEFT ARM
+  for (let i = 0; i < 500; i++) {
+    const p = Math.random();
+    const shoulder = new THREE.Vector3(-1.4, 2.5, 0);
+    const elbow = new THREE.Vector3(-1.8, 0.5, 0.5);
+    const hand = new THREE.Vector3(-1.8, -1.2, 1.2);
+
+    let pos: THREE.Vector3;
+    if (p < 0.5) {
+      pos = new THREE.Vector3().lerpVectors(shoulder, elbow, p * 2);
+    } else {
+      pos = new THREE.Vector3().lerpVectors(elbow, hand, (p - 0.5) * 2);
     }
-  };
 
-  // === MEDITATION POSE BODY ===
-  // 减少粒子密度（原来 ~30000 粒子，现在 ~12000 粒子）
+    const radius = Math.random() * 0.35;
+    const theta = Math.random() * Math.PI * 2;
+    pos.x += radius * Math.cos(theta);
+    pos.z += radius * Math.sin(theta);
 
-  // 头部 (Head)
-  addSphere(0, 1.45, 0, 0.15, 1000);
+    vertices.push(pos.x, pos.y, pos.z);
+    sizes.push(Math.random() * 0.05);
+    colors.push(baseColor.r, baseColor.g, baseColor.b);
+  }
 
-  // 脖子 (Neck)
-  addCylinder(0, 1.25, 0, 0.08, 0.15, 250);
+  // RIGHT ARM
+  for (let i = 0; i < 500; i++) {
+    const p = Math.random();
+    const shoulder = new THREE.Vector3(1.4, 2.5, 0);
+    const elbow = new THREE.Vector3(1.8, 0.5, 0.5);
+    const hand = new THREE.Vector3(1.8, -1.2, 1.2);
 
-  // 上躯干 (Upper Torso - Chest)
-  addCylinder(0, 1.0, 0, 0.2, 0.35, 1600);
+    let pos: THREE.Vector3;
+    if (p < 0.5) {
+      pos = new THREE.Vector3().lerpVectors(shoulder, elbow, p * 2);
+    } else {
+      pos = new THREE.Vector3().lerpVectors(elbow, hand, (p - 0.5) * 2);
+    }
 
-  // 中躯干 (Middle Torso - Solar Plexus)
-  addCylinder(0, 0.7, 0, 0.19, 0.25, 1200);
+    const radius = Math.random() * 0.35;
+    const theta = Math.random() * Math.PI * 2;
+    pos.x += radius * Math.cos(theta);
+    pos.z += radius * Math.sin(theta);
 
-  // 下躯干 (Lower Torso - Sacral)
-  addCylinder(0, 0.45, 0, 0.18, 0.2, 1000);
+    vertices.push(pos.x, pos.y, pos.z);
+    sizes.push(Math.random() * 0.05);
+    colors.push(baseColor.r, baseColor.g, baseColor.b);
+  }
 
-  // 骨盆 (Pelvis - Root)
-  addSphere(0, 0.35, 0, 0.2, 1000);
-
-  // === ARMS (手臂放在膝盖上) ===
-
-  // 左上臂 (Left Upper Arm - 向下斜伸)
-  addCylinder(-0.28, 0.9, 0.05, 0.06, 0.35, 600);
-
-  // 左下臂 (Left Forearm - 向前向下到膝盖)
-  addCylinder(-0.35, 0.5, 0.15, 0.05, 0.3, 500);
-
-  // 左手 (Left Hand on Knee)
-  addSphere(-0.4, 0.3, 0.25, 0.06, 250);
-
-  // 右上臂 (Right Upper Arm)
-  addCylinder(0.28, 0.9, 0.05, 0.06, 0.35, 600);
-
-  // 右下臂 (Right Forearm)
-  addCylinder(0.35, 0.5, 0.15, 0.05, 0.3, 500);
-
-  // 右手 (Right Hand on Knee)
-  addSphere(0.4, 0.3, 0.25, 0.06, 250);
-
-  // === LEGS (盘腿坐姿 - Lotus Position) ===
-
-  // 左大腿 (Left Thigh - 水平向前)
-  addCylinder(-0.15, 0.25, 0.15, 0.08, 0.35, 1000);
-
-  // 左小腿 (Left Calf - 向内盘)
-  addCylinder(-0.25, 0.15, 0.3, 0.06, 0.3, 700);
-
-  // 左脚 (Left Foot - 盘在右腿下)
-  addSphere(-0.15, 0.1, 0.35, 0.08, 300);
-
-  // 右大腿 (Right Thigh - 水平向前)
-  addCylinder(0.15, 0.25, 0.15, 0.08, 0.35, 1000);
-
-  // 右小腿 (Right Calf - 向内盘)
-  addCylinder(0.25, 0.15, 0.3, 0.06, 0.3, 700);
-
-  // 右脚 (Right Foot - 盘在左腿下)
-  addSphere(0.15, 0.1, 0.35, 0.08, 300);
-
-  // 创建 BufferGeometry
   const geometry = new THREE.BufferGeometry();
-
-  const positions = new Float32Array(points.length * 3);
-  const normalArray = new Float32Array(normals.length * 3);
-
-  points.forEach((point, i) => {
-    positions[i * 3] = point.x;
-    positions[i * 3 + 1] = point.y;
-    positions[i * 3 + 2] = point.z;
-  });
-
-  normals.forEach((normal, i) => {
-    normalArray[i * 3] = normal.x;
-    normalArray[i * 3 + 1] = normal.y;
-    normalArray[i * 3 + 2] = normal.z;
-  });
-
-  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  geometry.setAttribute('normal', new THREE.BufferAttribute(normalArray, 3));
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
+  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 
   return geometry;
 };
 
-export const EnergyBody: React.FC = () => {
-  const meshRef = useRef<THREE.Points>(null);
-  const materialRef = useRef<any>(null);
-  const { getAudioData } = useAudioAnalyzer();
-  const currentElement = useStore(state => state.currentElement) || 'water';
+// Chakra light component
+interface ChakraLightProps {
+  position: THREE.Vector3;
+  color: number;
+  intensity: number;
+}
 
-  // 生成人形几何体
-  const geometry = useMemo(() => createHumanoidGeometry(), []);
+const ChakraLight: React.FC<ChakraLightProps> = ({ position, color, intensity }) => {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const coreRef = useRef<THREE.Mesh>(null);
+  const lightRef = useRef<THREE.PointLight>(null);
 
-  // 每一帧更新 Uniforms
   useFrame((state) => {
-    if (materialRef.current) {
-      // 1. 更新时间
-      materialRef.current.uTime = state.clock.elapsedTime;
-      materialRef.current.uPixelRatio = Math.min(window.devicePixelRatio, 2);
+    const time = state.clock.elapsedTime;
+    const scale = 1 + Math.sin(time * 3) * 0.3;
 
-      // 2. 音频数据驱动
-      const audioData = getAudioData();
-      materialRef.current.uAudioHigh = THREE.MathUtils.lerp(
-        materialRef.current.uAudioHigh || 0,
-        audioData.treble,
-        0.1
-      );
-
-      // 3. 更新脉轮位置 (平滑插值 Lerp)
-      const targetPos = new THREE.Vector3(...CHAKRA_POSITIONS[currentElement]);
-      if (!materialRef.current.uChakraPos) {
-        materialRef.current.uChakraPos = targetPos.clone();
-      }
-      materialRef.current.uChakraPos.lerp(targetPos, 0.05);
-
-      // 4. 更新五行颜色 (平滑插值)
-      const targetColor = new THREE.Color(ELEMENT_COLORS[currentElement]);
-      if (!materialRef.current.uElementColor) {
-        materialRef.current.uElementColor = targetColor.clone();
-      }
-      materialRef.current.uElementColor.lerp(targetColor, 0.05);
-
-      // 5. 辉光半径（可以根据音频动态调整）
-      materialRef.current.uGlowRadius = 1.2 + audioData.treble * 0.3;
+    if (meshRef.current) {
+      meshRef.current.scale.set(scale * 3, scale * 3, scale * 3);
+      const mat = meshRef.current.material as THREE.MeshBasicMaterial;
+      mat.opacity = 0.3 + Math.sin(time * 3) * 0.1;
     }
 
-    // 整体缓慢旋转
-    if (meshRef.current) {
-      meshRef.current.rotation.y += 0.002;
+    if (coreRef.current) {
+      coreRef.current.scale.set(scale, scale, scale);
+    }
+
+    if (lightRef.current) {
+      lightRef.current.intensity = intensity + Math.sin(time * 5) * 1;
     }
   });
 
   return (
-    <points ref={meshRef} geometry={geometry} position={[0, 0, 0]}>
-      <bodyParticlesMaterial
-        ref={materialRef}
-        transparent
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
+    <group position={position}>
+      <pointLight ref={lightRef} color={color} intensity={0} distance={10} />
+
+      <mesh ref={meshRef}>
+        <sphereGeometry args={[0.1, 32, 32]} />
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={0}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+
+      <mesh ref={coreRef}>
+        <sphereGeometry args={[0.1, 16, 16]} />
+        <meshBasicMaterial color={0xffffff} />
+      </mesh>
+    </group>
+  );
+};
+
+export const EnergyBody: React.FC = () => {
+  const particlesRef = useRef<THREE.Points>(null);
+  const currentElement = useStore(state => state.currentElement) || 'water';
+
+  const geometry = useMemo(() => createMeditationBodyGeometry(), []);
+  const texture = useMemo(() => createCircleTexture(), []);
+
+  const chakraData = useMemo(() => ({
+    position: CHAKRA_POSITIONS[currentElement],
+    color: ELEMENT_COLORS[currentElement],
+    intensity: currentElement === 'fire' ? 3 : 2
+  }), [currentElement]);
+
+  // Update particle colors based on element
+  useFrame((state) => {
+    const time = state.clock.elapsedTime;
+
+    if (particlesRef.current) {
+      // Smooth continuous rotation (not sway, but full rotation)
+      particlesRef.current.rotation.y = time * 0.15; // Steady rotation speed
+      // Levitation
+      particlesRef.current.position.y = Math.sin(time * 0.5) * 0.1;
+
+      // Update particle colors to match element
+      const colors = geometry.attributes.color.array as Float32Array;
+      const baseColor = new THREE.Color(0x44aaff);
+      const targetColor = new THREE.Color(ELEMENT_COLORS[currentElement]);
+      baseColor.lerp(targetColor, 0.3);
+
+      for (let i = 0; i < colors.length; i += 3) {
+        colors[i] = baseColor.r;
+        colors[i + 1] = baseColor.g;
+        colors[i + 2] = baseColor.b;
+      }
+      geometry.attributes.color.needsUpdate = true;
+    }
+  });
+
+  return (
+    <group position={[0, 0, 0]} scale={0.25}>
+      {/* Particle Body */}
+      <points ref={particlesRef} geometry={geometry}>
+        <pointsMaterial
+          size={0.1}
+          vertexColors
+          map={texture}
+          alphaTest={0.1}
+          transparent
+          opacity={0.8}
+          blending={THREE.AdditiveBlending}
+          sizeAttenuation
+        />
+      </points>
+
+      {/* Spine axis light */}
+      <mesh position={[0, 1, 0]}>
+        <cylinderGeometry args={[0.05, 0.05, 7, 8]} />
+        <meshBasicMaterial
+          color={0x44aaff}
+          transparent
+          opacity={0.1}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+
+      {/* Chakra Light */}
+      <ChakraLight
+        position={chakraData.position}
+        color={chakraData.color}
+        intensity={chakraData.intensity}
       />
-    </points>
+    </group>
   );
 };

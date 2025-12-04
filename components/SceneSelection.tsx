@@ -7,59 +7,59 @@ import { useStore, ElementType } from '../store';
 import gsap from 'gsap';
 
 // Extended Element Data with Western Spiritual Concepts
-const ELEMENTS: { 
-    id: ElementType; 
-    color: string; 
-    geometry: React.ReactNode; 
+const ELEMENTS: {
+    id: ElementType;
+    color: string;
+    geometry: React.ReactNode;
     label: string;
     hz: string;
     chakra: string;
     benefit: string;
 }[] = [
-  { 
-    id: 'wood', 
-    color: '#22d3ee', 
-    geometry: <icosahedronGeometry args={[1.2, 0]} />, 
-    label: 'WOOD',
+  {
+    id: 'fire',
+    color: '#f43f5e',
+    geometry: <tetrahedronGeometry args={[1.3, 0]} />,
+    label: 'FIRE',
     hz: '396 Hz',
     chakra: 'Root Chakra',
-    benefit: 'Releasing Fear'
+    benefit: 'Release Fear & Ground'
   },
-  { 
-    id: 'fire', 
-    color: '#f43f5e', 
-    geometry: <tetrahedronGeometry args={[1.4, 0]} />, 
-    label: 'FIRE',
-    hz: '528 Hz',
-    chakra: 'Heart Chakra',
-    benefit: 'Love & Miracles'
-  },
-  { 
-    id: 'earth', 
-    color: '#fbbf24', 
-    geometry: <boxGeometry args={[1.1, 1.1, 1.1]} />, 
-    label: 'EARTH',
-    hz: '174 Hz',
-    chakra: 'Solar Plexus',
-    benefit: 'Pain Relief & Grounding'
-  },
-  { 
-    id: 'metal', 
-    color: '#e2e8f0', 
-    geometry: <octahedronGeometry args={[1.3, 0]} />, 
-    label: 'METAL',
-    hz: '741 Hz',
-    chakra: 'Throat Chakra',
-    benefit: 'Detox & Intuition'
-  },
-  { 
-    id: 'water', 
-    color: '#3b82f6', 
-    geometry: <sphereGeometry args={[1.1, 32, 32]} />, 
+  {
+    id: 'water',
+    color: '#3b82f6',
+    geometry: <sphereGeometry args={[1.3, 32, 32]} />,
     label: 'WATER',
     hz: '417 Hz',
     chakra: 'Sacral Chakra',
-    benefit: 'Clearing Trauma'
+    benefit: 'Clear Negativity & Flow'
+  },
+  {
+    id: 'earth',
+    color: '#fbbf24',
+    geometry: <boxGeometry args={[1.3, 1.3, 1.3]} />,
+    label: 'EARTH',
+    hz: '528 Hz',
+    chakra: 'Solar Plexus Chakra',
+    benefit: 'DNA Repair & Miracles'
+  },
+  {
+    id: 'wood',
+    color: '#22d3ee',
+    geometry: <icosahedronGeometry args={[1.3, 0]} />,
+    label: 'WOOD',
+    hz: '639 Hz',
+    chakra: 'Heart Chakra',
+    benefit: 'Connection & Compassion'
+  },
+  {
+    id: 'metal',
+    color: '#e2e8f0',
+    geometry: <octahedronGeometry args={[1.3, 0]} />,
+    label: 'METAL',
+    hz: '741 Hz',
+    chakra: 'Throat Chakra',
+    benefit: 'Expression & Detox'
   },
 ];
 
@@ -178,33 +178,58 @@ const HolographicTerrain: React.FC<{ typeId: ElementType; color: string }> = ({ 
 };
 
 const HolographicLabel: React.FC<{ data: typeof ELEMENTS[0]; visible: boolean }> = ({ data, visible }) => {
+    // Adjust position and alignment based on element
+    const getPositionAndAlignment = () => {
+        if (data.id === 'water') {
+            return {
+                position: [-3.5, -1.5, 0] as [number, number, number],
+                align: 'items-end text-right' as string,
+                center: false
+            };
+        } else if (data.id === 'metal') {
+            return {
+                position: [1.8, -1.5, 0] as [number, number, number],
+                align: 'items-start text-left' as string,
+                center: false
+            };
+        } else {
+            return {
+                position: [0, -2.5, 0] as [number, number, number],
+                align: 'items-center text-center' as string,
+                center: true
+            };
+        }
+    };
+
+    const { position, align, center } = getPositionAndAlignment();
+
     return (
         <Html
-            position={[0, -2.5, 0]}
-            center
+            position={position}
+            center={center}
             className={`pointer-events-none transition-all duration-500 ease-out transform ${visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-90'}`}
             zIndexRange={[100, 0]}
         >
-            <div className="flex flex-col items-center justify-center text-center w-64 pointer-events-none">
+            <div className={`flex flex-col justify-center w-48 pointer-events-none ${align}`}>
                 {/* Main Title - Element Name */}
-                <h2 
-                    className="text-5xl font-bold text-white tracking-widest drop-shadow-[0_0_15px_rgba(255,255,255,0.6)] font-mono uppercase"
+                <h2
+                    className="text-3xl font-bold text-white tracking-widest drop-shadow-[0_0_15px_rgba(255,255,255,0.6)] font-mono uppercase"
                     style={{ textShadow: `0 0 20px ${data.color}` }}
                 >
                     {data.label}
                 </h2>
-                
+
                 {/* Decorative Line */}
-                <div className="w-16 h-[2px] bg-white/80 my-3 shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
-                
+                <div className="w-12 h-[1px] bg-white/80 my-2 shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
+
                 {/* Subtitle - Frequency & Chakra */}
-                <p className="text-cyan-300 text-sm font-bold tracking-[0.2em] uppercase mb-1 drop-shadow-[0_0_5px_rgba(34,211,238,0.8)]">
+                <p className="text-cyan-300 text-xs font-bold tracking-[0.15em] uppercase mb-1 drop-shadow-[0_0_5px_rgba(34,211,238,0.8)]">
                     {data.chakra} · {data.hz}
                 </p>
-                
+
                 {/* Micro-copy - Benefit */}
-                <div className="bg-black/40 backdrop-blur-sm px-3 py-1 rounded border border-white/10 mt-1">
-                    <p className="text-white/90 text-xs font-light tracking-widest uppercase">
+                <div className="bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded border border-white/10 mt-0.5">
+                    <p className="text-white/90 text-[10px] font-light tracking-wide uppercase">
                         {data.benefit}
                     </p>
                 </div>
@@ -223,11 +248,11 @@ const SelectionItem: React.FC<{
     const [hovered, setHover] = useState(false);
     
     // Distribute in a circle
-    const radius = 4.5;
-    const angle = (index / total) * Math.PI * 2; 
+    const radius = 3.5;
+    const angle = (index / total) * Math.PI * 2;
     // Adjust angle so Wood (Index 0) is at Top
     const adjustedAngle = angle + Math.PI / 2;
-    
+
     const x = Math.cos(adjustedAngle) * radius;
     const y = Math.sin(adjustedAngle) * radius;
 
@@ -236,9 +261,10 @@ const SelectionItem: React.FC<{
             // Self rotation
             meshRef.current.rotation.x += 0.005;
             meshRef.current.rotation.y += 0.01;
-            
-            // Hover Animation
-            const targetScale = hovered ? 1.3 : 1;
+
+            // Hover Animation - increased base size
+            const baseScale = 0.8;
+            const targetScale = hovered ? baseScale * 1.2 : baseScale;
             meshRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), delta * 8);
         }
     });
