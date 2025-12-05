@@ -1,25 +1,15 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import posthog from 'posthog-js';
 import App from './App';
 
-// Initialize PostHog
-const posthogKey = import.meta.env.VITE_POSTHOG_KEY;
-const posthogHost = import.meta.env.VITE_POSTHOG_HOST;
-
-if (posthogKey && posthogHost) {
-  posthog.init(posthogKey, {
-    api_host: posthogHost,
-    person_profiles: 'identified_only', // Only create profiles for identified users
-    capture_pageview: true,
-    capture_pageleave: true,
-    autocapture: {
-      dom_event_allowlist: ['click', 'submit', 'change'], // Only capture meaningful interactions
-      url_allowlist: [window.location.origin] // Only capture events from this domain
-    }
+// PostHog initialization is now handled by CookieBanner component
+// Only initialize if user has previously consented
+const consent = localStorage.getItem('irw_cookie_consent');
+if (consent === 'accepted') {
+  // Import and initialize PostHog dynamically
+  import('./components/CookieBanner').then(({ initializePostHog }) => {
+    initializePostHog();
   });
-} else {
-  console.warn('PostHog analytics disabled: Missing environment variables');
 }
 
 const rootElement = document.getElementById('root');

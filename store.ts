@@ -45,6 +45,9 @@ type AppState = {
   currentTrack: MusicTrack | null;
   isPlaying: boolean;
   currentTime: number;
+  trackCompleted: boolean;
+  trackProgress: number; // Percentage 0-100
+  timeInResonance: number; // Seconds spent in resonance phase
 
   // V2: Membership Tier State
   userTier: UserTier;
@@ -100,6 +103,9 @@ type AppState = {
   setCurrentTrack: (track: MusicTrack | null) => void;
   setIsPlaying: (playing: boolean) => void;
   setCurrentTime: (time: number) => void;
+  setTrackCompleted: (completed: boolean) => void;
+  setTrackProgress: (progress: number) => void;
+  incrementTimeInResonance: (seconds: number) => void;
 
   // V2: Paywall Actions
   openPaywall: (trigger: 'tier1_record' | 'tier2_music' | 'tier2_wisdom' | 'tier2_trend') => void;
@@ -135,6 +141,9 @@ export const useStore = create<AppState>((set) => ({
   currentTrack: null,
   isPlaying: false,
   currentTime: 0,
+  trackCompleted: false,
+  trackProgress: 0,
+  timeInResonance: 0,
 
   // V2: Initial State
   userTier: 'free',
@@ -222,9 +231,12 @@ export const useStore = create<AppState>((set) => ({
   setCorridorInspectRotation: (rotation) => set({ corridorInspectRotation: rotation }),
 
   // Music Playback Actions Implementation
-  setCurrentTrack: (track) => set({ currentTrack: track }),
+  setCurrentTrack: (track) => set({ currentTrack: track, trackCompleted: false, trackProgress: 0 }),
   setIsPlaying: (playing) => set({ isPlaying: playing }),
   setCurrentTime: (time) => set({ currentTime: time }),
+  setTrackCompleted: (completed) => set({ trackCompleted: completed }),
+  setTrackProgress: (progress) => set({ trackProgress: progress }),
+  incrementTimeInResonance: (seconds) => set((state) => ({ timeInResonance: state.timeInResonance + seconds })),
 
   // V2: Paywall Actions Implementation
   openPaywall: (trigger) => set({ paywallVisible: true, paywallTrigger: trigger }),
@@ -241,5 +253,5 @@ export const useStore = create<AppState>((set) => ({
   // V2: Music Playlist Actions Implementation
   toggleMusicPlaylist: () => set((state) => ({ musicPlaylistVisible: !state.musicPlaylistVisible })),
 
-  reset: () => set({ phase: 'entry', currentElement: null, currentLandmark: null, isMicReady: false, isInjecting: false, uploadedPhoto: null, isPhotoMode: false, isPhotoChoicePanelOpen: false, pendingLandmark: null, corridorMode: 'CORRIDOR', corridorFocusIndex: 0, corridorCameraX: 0, corridorIsDragging: false, corridorInspectRotation: { x: 0, y: 0 }, currentTrack: null, isPlaying: false, currentTime: 0, userTier: 'free', paywallVisible: false, paywallTrigger: null, emailCaptureVisible: false, hasSubmittedEmail: false, musicPlaylistVisible: false }),
+  reset: () => set({ phase: 'entry', currentElement: null, currentLandmark: null, isMicReady: false, isInjecting: false, uploadedPhoto: null, isPhotoMode: false, isPhotoChoicePanelOpen: false, pendingLandmark: null, corridorMode: 'CORRIDOR', corridorFocusIndex: 0, corridorCameraX: 0, corridorIsDragging: false, corridorInspectRotation: { x: 0, y: 0 }, currentTrack: null, isPlaying: false, currentTime: 0, trackCompleted: false, trackProgress: 0, timeInResonance: 0, userTier: 'free', paywallVisible: false, paywallTrigger: null, emailCaptureVisible: false, hasSubmittedEmail: false, musicPlaylistVisible: false }),
 }));

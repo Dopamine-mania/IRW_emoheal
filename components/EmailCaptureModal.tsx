@@ -11,6 +11,7 @@ export const EmailCaptureModal: React.FC = () => {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   if (!emailCaptureVisible) return null;
 
@@ -26,6 +27,12 @@ export const EmailCaptureModal: React.FC = () => {
     // 验证邮箱格式
     if (!validateEmail(email)) {
       setError('Please enter a valid email address');
+      return;
+    }
+
+    // 验证隐私政策同意
+    if (!agreedToTerms) {
+      setError('Please agree to the privacy policy to continue.');
       return;
     }
 
@@ -53,7 +60,8 @@ export const EmailCaptureModal: React.FC = () => {
       // 追踪邮箱提交事件
       trackEvent('email_captured', {
         source: 'email_capture_modal',
-        email: email
+        email: email,
+        consent_given: true
       });
 
       // 标记为已提交（LocalStorage + Zustand）
@@ -204,28 +212,68 @@ export const EmailCaptureModal: React.FC = () => {
             )}
           </div>
 
+          {/* 隐私政策同意复选框 */}
+          <label style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '8px',
+            fontSize: '11px',
+            color: 'rgba(255, 255, 255, 0.7)',
+            marginBottom: '20px',
+            cursor: 'pointer',
+            lineHeight: '1.5'
+          }}>
+            <input
+              type="checkbox"
+              checked={agreedToTerms}
+              onChange={(e) => setAgreedToTerms(e.target.checked)}
+              style={{
+                marginTop: '2px',
+                accentColor: '#22d3ee',
+                cursor: 'pointer',
+                minWidth: '14px',
+                minHeight: '14px'
+              }}
+            />
+            <span>
+              I agree to receive updates from IRW EmoHeal and consent to data processing as described in our{' '}
+              <a
+                href="/privacy-policy"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: '#22d3ee',
+                  textDecoration: 'underline'
+                }}
+              >
+                Privacy Policy
+              </a>.
+            </span>
+          </label>
+
           {/* 提交按钮 */}
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={!email.trim() || isSubmitting || !agreedToTerms}
             style={{
               width: '100%',
               padding: '16px',
               fontSize: '15px',
               fontWeight: '600',
               color: 'white',
-              background: isSubmitting
-                ? 'rgba(34, 211, 238, 0.5)'
+              background: (!email.trim() || isSubmitting || !agreedToTerms)
+                ? 'rgba(34, 211, 238, 0.3)'
                 : 'linear-gradient(135deg, #22d3ee, #3b82f6)',
               border: 'none',
               borderRadius: '12px',
-              cursor: isSubmitting ? 'not-allowed' : 'pointer',
+              cursor: (!email.trim() || isSubmitting || !agreedToTerms) ? 'not-allowed' : 'pointer',
               transition: 'all 0.3s ease',
               letterSpacing: '1px',
-              boxShadow: '0 4px 20px rgba(34, 211, 238, 0.4)'
+              boxShadow: '0 4px 20px rgba(34, 211, 238, 0.4)',
+              opacity: (!email.trim() || isSubmitting || !agreedToTerms) ? 0.5 : 1
             }}
             onMouseEnter={(e) => {
-              if (!isSubmitting) {
+              if (!isSubmitting && email.trim() && agreedToTerms) {
                 e.currentTarget.style.transform = 'translateY(-2px)';
                 e.currentTarget.style.boxShadow = '0 6px 30px rgba(34, 211, 238, 0.6)';
               }
@@ -248,8 +296,6 @@ export const EmailCaptureModal: React.FC = () => {
           lineHeight: '1.5'
         }}>
           We respect your privacy. Unsubscribe anytime.
-          <br />
-          By joining, you agree to receive updates from IRW EmoHeal.
         </div>
       </div>
     </div>

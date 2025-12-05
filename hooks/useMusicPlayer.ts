@@ -7,6 +7,8 @@ export const useMusicPlayer = () => {
   const isPlaying = useStore(state => state.isPlaying);
   const setCurrentTime = useStore(state => state.setCurrentTime);
   const setIsPlaying = useStore(state => state.setIsPlaying);
+  const setTrackCompleted = useStore(state => state.setTrackCompleted);
+  const setTrackProgress = useStore(state => state.setTrackProgress);
 
   // 初始化 Audio Element
   useEffect(() => {
@@ -54,12 +56,24 @@ export const useMusicPlayer = () => {
     if (!audioElement) return;
 
     const handleTimeUpdate = () => {
-      setCurrentTime(audioElement.currentTime);
+      const currentTime = audioElement.currentTime;
+      const duration = audioElement.duration;
+
+      setCurrentTime(currentTime);
+
+      // Calculate progress percentage
+      if (duration && duration > 0) {
+        const progress = (currentTime / duration) * 100;
+        setTrackProgress(progress);
+      }
     };
 
     const handleEnded = () => {
       setIsPlaying(false);
       setCurrentTime(0);
+      setTrackCompleted(true);
+      setTrackProgress(100);
+      console.log('[MusicPlayer] Track completed');
     };
 
     audioElement.addEventListener('timeupdate', handleTimeUpdate);
@@ -69,7 +83,7 @@ export const useMusicPlayer = () => {
       audioElement.removeEventListener('timeupdate', handleTimeUpdate);
       audioElement.removeEventListener('ended', handleEnded);
     };
-  }, [audioElement, setCurrentTime, setIsPlaying]);
+  }, [audioElement, setCurrentTime, setIsPlaying, setTrackCompleted, setTrackProgress]);
 
   // 进度跳转
   const seekTo = useCallback((time: number) => {
