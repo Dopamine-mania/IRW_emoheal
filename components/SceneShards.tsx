@@ -1,5 +1,5 @@
 
-import React, { useMemo, useRef, useState, useLayoutEffect } from 'react';
+import React, { useMemo, useRef, useState, useLayoutEffect, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Float, Environment, Html } from '@react-three/drei';
 import * as THREE from 'three';
@@ -125,8 +125,55 @@ const LandmarkNode: React.FC<{
     const meshRef = useRef<THREE.Mesh>(null);
     const materialRef = useRef<THREE.ShaderMaterial>(null);
     const [hovered, setHover] = useState(false);
-    
+
+    // Locked landmark tap detection state
+    const [lockedTapCount, setLockedTapCount] = useState(0);
+    const [lastLockedTapTime, setLastLockedTapTime] = useState(0);
+    const lockedTapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const [isInspecting, setIsInspecting] = useState(false);
+
+    // Camera access for zoom animations
+    const { camera } = useThree();
+
     const isActive = data.status === 'active';
+
+    // Camera animation functions for locked landmarks
+    const zoomToLandmark = (position: THREE.Vector3) => {
+        setIsInspecting(true);
+
+        // User spec: 0.8s duration, Cubic.Out easing, z+3 distance
+        gsap.to(camera.position, {
+            x: position.x,
+            y: position.y,
+            z: position.z + 3,
+            duration: 0.8,
+            ease: "cubic.out",
+        });
+
+        // CRITICAL per user: Update camera lookAt target, not just position
+        gsap.to(camera, {
+            duration: 0.8,
+            ease: "cubic.out",
+            onUpdate: () => {
+                camera.lookAt(position.x, position.y, position.z);
+            }
+        });
+    };
+
+    const resetCamera = () => {
+        setIsInspecting(false);
+
+        gsap.to(camera.position, {
+            x: 0,
+            y: 0,
+            z: 10,
+            duration: 0.8,
+            ease: "cubic.out",
+            onUpdate: () => {
+                camera.lookAt(0, 0, 0);
+            }
+        });
+    };
 
     // Generate random irregular shape
     const shape = useMemo(() => {
@@ -160,23 +207,84 @@ const LandmarkNode: React.FC<{
 
     const handleClick = (e: any) => {
         e.stopPropagation();
-        if (meshRef.current) {
-            const vec = new THREE.Vector3();
-            meshRef.current.getWorldPosition(vec);
 
-            if (isActive) {
-                // Active landmark: proceed to photo choice
-                onClick(vec, data);
-            } else {
-                // Locked landmark: track interest as fake door
-                trackEvent('locked_landmark_clicked', {
-                    landmark_id: data.id,
-                    landmark_name: data.name,
-                    element: element
-                });
-            }
+        if (!meshRef.current) return;
+
+        const vec = new THREE.Vector3();
+        meshRef.current.getWorldPosition(vec);
+
+        // Active landmark: unchanged behavior
+        if (isActive) {
+            onClick(vec, data);
+            return;
+        }
+
+        // LOCKED LANDMARK: Two-tap logic
+        const now = Date.now();
+        const DOUBLE_TAP_WINDOW = 500;
+        const AUTO_RESET_DELAY = 5000;
+        const openPaywall = useStore.getState().openPaywall;
+
+        if (lockedTapTimeoutRef.current) {
+            clearTimeout(lockedTapTimeoutRef.current);
+        }
+
+        // First tap: Zoom in
+        if (lockedTapCount === 0) {
+            setLockedTapCount(1);
+            setLastLockedTapTime(now);
+            zoomToLandmark(vec);
+
+            trackEvent('locked_landmark_inspected', {
+                landmark_id: data.id,
+                landmark_name: data.name,
+                element: element
+            });
+
+            lockedTapTimeoutRef.current = setTimeout(() => {
+                setLockedTapCount(0);
+                resetCamera();
+            }, AUTO_RESET_DELAY);
+        }
+        // Second tap: Open paywall
+        else if (lockedTapCount === 1 && (now - lastLockedTapTime) < DOUBLE_TAP_WINDOW) {
+            setLockedTapCount(0);
+            resetCamera();
+
+            trackEvent('locked_landmark_paywall_triggered', {
+                landmark_id: data.id,
+                landmark_name: data.name,
+                element: element
+            });
+
+            openPaywall('tier2_music');
+        }
+        // Reset to first tap
+        else {
+            setLockedTapCount(1);
+            setLastLockedTapTime(now);
+            zoomToLandmark(vec);
+
+            lockedTapTimeoutRef.current = setTimeout(() => {
+                setLockedTapCount(0);
+                resetCamera();
+            }, AUTO_RESET_DELAY);
         }
     };
+
+    // Cleanup timeout and reset camera on unmount
+    useEffect(() => {
+        return () => {
+            if (lockedTapTimeoutRef.current) {
+                clearTimeout(lockedTapTimeoutRef.current);
+            }
+
+            if (isInspecting) {
+                camera.position.set(0, 0, 10);
+                camera.lookAt(0, 0, 0);
+            }
+        };
+    }, [isInspecting, camera]);
 
     // Layout
     const angle = (index / 3) * Math.PI * 2;
@@ -225,7 +333,25 @@ const LandmarkNode: React.FC<{
                             </>
                         ) : (
                             <div className="flex flex-col items-center">
-                                {hovered ? (
+                                {isInspecting ? (
+                                    <>
+                                        <div className="text-sm text-cyan-400 tracking-widest uppercase mb-2 animate-pulse">
+                                            🔒 Coming Soon
+                                        </div>
+                                        <div
+                                            className="text-white text-base font-bold uppercase tracking-wider whitespace-nowrap mb-2"
+                                            style={{ textShadow: `0 0 12px ${color}` }}
+                                        >
+                                            {data.name}
+                                        </div>
+                                        <div className="text-xs text-white/80 tracking-wide mb-2 text-center px-4">
+                                            Tap again to express interest
+                                        </div>
+                                        <div className="text-[10px] text-gray-400 tracking-wide">
+                                            Premium Feature
+                                        </div>
+                                    </>
+                                ) : hovered ? (
                                     <>
                                         <div className="text-[10px] text-cyan-400 tracking-widest uppercase mb-1 animate-pulse">
                                             Coming Soon
@@ -237,7 +363,7 @@ const LandmarkNode: React.FC<{
                                             {data.name}
                                         </div>
                                         <div className="text-[9px] text-gray-400 tracking-wide mt-1">
-                                            Click to express interest
+                                            Tap to inspect
                                         </div>
                                     </>
                                 ) : (

@@ -1,5 +1,5 @@
 
-import React, { useRef, useState, useLayoutEffect, useMemo } from 'react';
+import React, { useRef, useState, useLayoutEffect, useMemo, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Float, MeshDistortMaterial, Environment, Html } from '@react-three/drei';
 import * as THREE from 'three';
@@ -247,7 +247,12 @@ const SelectionItem: React.FC<{
 }> = ({ data, index, total, onSelect }) => {
     const meshRef = useRef<THREE.Group>(null);
     const [hovered, setHover] = useState(false);
-    
+
+    // Tap detection state
+    const [tapCount, setTapCount] = useState(0);
+    const [lastTapTime, setLastTapTime] = useState(0);
+    const tapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
     // Distribute in a circle
     const radius = 3.5;
     const angle = (index / total) * Math.PI * 2;
@@ -272,13 +277,58 @@ const SelectionItem: React.FC<{
 
     const handleClick = (e: any) => {
         e.stopPropagation();
-        if (meshRef.current) {
-            // Pass world position for camera transition
-            const vec = new THREE.Vector3();
-            meshRef.current.getWorldPosition(vec);
-            onSelect(data.id, vec);
+
+        const now = Date.now();
+        const DOUBLE_TAP_WINDOW = 500; // 500ms per user preference
+        const AUTO_COLLAPSE_DELAY = 5000; // 5 seconds per user preference
+
+        if (tapTimeoutRef.current) {
+            clearTimeout(tapTimeoutRef.current);
+        }
+
+        // First tap: Show info
+        if (tapCount === 0) {
+            setTapCount(1);
+            setLastTapTime(now);
+            setHover(true);
+
+            tapTimeoutRef.current = setTimeout(() => {
+                setTapCount(0);
+                setHover(false);
+            }, AUTO_COLLAPSE_DELAY);
+        }
+        // Second tap within window: Select element
+        else if (tapCount === 1 && (now - lastTapTime) < DOUBLE_TAP_WINDOW) {
+            setTapCount(0);
+            setHover(false);
+
+            if (meshRef.current) {
+                const vec = new THREE.Vector3();
+                meshRef.current.getWorldPosition(vec);
+                onSelect(data.id, vec);
+            }
+        }
+        // Tap after window expired: Reset to first tap
+        else {
+            setTapCount(1);
+            setLastTapTime(now);
+            setHover(true);
+
+            tapTimeoutRef.current = setTimeout(() => {
+                setTapCount(0);
+                setHover(false);
+            }, AUTO_COLLAPSE_DELAY);
         }
     };
+
+    // Cleanup timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (tapTimeoutRef.current) {
+                clearTimeout(tapTimeoutRef.current);
+            }
+        };
+    }, []);
 
     return (
         <group position={[x, y, 0]}>

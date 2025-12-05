@@ -30,8 +30,6 @@ export const Footer: React.FC = () => {
     }}>
       <a
         href="/privacy-policy"
-        target="_blank"
-        rel="noopener noreferrer"
         style={{
           color: 'rgba(255, 255, 255, 0.7)',
           textDecoration: 'none',
@@ -46,7 +44,7 @@ export const Footer: React.FC = () => {
       <span style={{ color: 'rgba(255, 255, 255, 0.3)' }}>|</span>
 
       <a
-        href="mailto:privacy@irwemoheal.com"
+        href="mailto:support@inresonancewell.com"
         style={{
           color: 'rgba(255, 255, 255, 0.7)',
           textDecoration: 'none',
