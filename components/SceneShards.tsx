@@ -5,6 +5,7 @@ import { Float, Environment, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore, ElementType } from '../store';
 import gsap from 'gsap';
+import { trackEvent } from '../utils/analytics';
 
 // --- Interfaces ---
 interface LandmarkData {
@@ -114,12 +115,13 @@ const mistFragmentShader = `
   }
 `;
 
-const LandmarkNode: React.FC<{ 
-    index: number; 
+const LandmarkNode: React.FC<{
+    index: number;
     data: LandmarkData;
-    color: string; 
-    onClick: (pos: THREE.Vector3, landmark: LandmarkData) => void 
-}> = ({ index, data, color, onClick }) => {
+    color: string;
+    element: ElementType;
+    onClick: (pos: THREE.Vector3, landmark: LandmarkData) => void
+}> = ({ index, data, color, element, onClick }) => {
     const meshRef = useRef<THREE.Mesh>(null);
     const materialRef = useRef<THREE.ShaderMaterial>(null);
     const [hovered, setHover] = useState(false);
@@ -150,18 +152,29 @@ const LandmarkNode: React.FC<{
         }
         if (meshRef.current) {
             meshRef.current.rotation.z += (isActive ? 0.005 : 0.001) * (index % 2 === 0 ? 1 : -1);
-            const targetScale = hovered && isActive ? 1.2 : 1;
+            // Both active and locked landmarks scale on hover
+            const targetScale = hovered ? 1.2 : 1;
             meshRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.1);
         }
     });
 
     const handleClick = (e: any) => {
         e.stopPropagation();
-        if (!isActive) return;
         if (meshRef.current) {
             const vec = new THREE.Vector3();
             meshRef.current.getWorldPosition(vec);
-            onClick(vec, data);
+
+            if (isActive) {
+                // Active landmark: proceed to photo choice
+                onClick(vec, data);
+            } else {
+                // Locked landmark: track interest as fake door
+                trackEvent('locked_landmark_clicked', {
+                    landmark_id: data.id,
+                    landmark_name: data.name,
+                    element: element
+                });
+            }
         }
     };
 
@@ -197,13 +210,13 @@ const LandmarkNode: React.FC<{
                 </mesh>
                 
                 <Html position={[0, -1.8, 0]} center className="pointer-events-none" zIndexRange={[100, 0]}>
-                    <div className={`flex flex-col items-center transition-opacity duration-300 ${isActive || hovered ? 'opacity-100' : 'opacity-40'}`}>
+                    <div className={`flex flex-col items-center transition-all duration-300 ${isActive || hovered ? 'opacity-100' : 'opacity-40'}`}>
                         {isActive ? (
                             <>
                                 <div className={`text-xs text-${hovered ? 'white' : 'white/60'} tracking-widest uppercase mb-1`}>
                                     Target Node
                                 </div>
-                                <div 
+                                <div
                                     className="text-white font-bold text-lg uppercase tracking-wider whitespace-nowrap drop-shadow-md"
                                     style={{ textShadow: hovered ? `0 0 10px ${color}` : 'none' }}
                                 >
@@ -212,8 +225,27 @@ const LandmarkNode: React.FC<{
                             </>
                         ) : (
                             <div className="flex flex-col items-center">
-                                <div className="text-[10px] text-gray-500 tracking-widest uppercase mb-1">Signal Weak</div>
-                                <div className="text-gray-600 text-sm font-mono uppercase tracking-widest">Locked</div>
+                                {hovered ? (
+                                    <>
+                                        <div className="text-[10px] text-cyan-400 tracking-widest uppercase mb-1 animate-pulse">
+                                            Coming Soon
+                                        </div>
+                                        <div
+                                            className="text-white/80 text-sm font-mono uppercase tracking-wider whitespace-nowrap"
+                                            style={{ textShadow: `0 0 8px ${color}` }}
+                                        >
+                                            {data.name}
+                                        </div>
+                                        <div className="text-[9px] text-gray-400 tracking-wide mt-1">
+                                            Click to express interest
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="text-[10px] text-gray-500 tracking-widest uppercase mb-1">Signal Weak</div>
+                                        <div className="text-gray-600 text-sm font-mono uppercase tracking-widest">Locked</div>
+                                    </>
+                                )}
                             </div>
                         )}
                     </div>
@@ -250,12 +282,13 @@ export const SceneShards: React.FC = () => {
 
             <group position={[0, 0, 0]}>
                 {config.nodes.map((node, i) => (
-                    <LandmarkNode 
-                        key={node.id} 
-                        index={i} 
-                        data={node} 
-                        color={config.color} 
-                        onClick={handleNodeClick} 
+                    <LandmarkNode
+                        key={node.id}
+                        index={i}
+                        data={node}
+                        color={config.color}
+                        element={currentElement}
+                        onClick={handleNodeClick}
                     />
                 ))}
             </group>

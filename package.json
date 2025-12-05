@@ -9,15 +9,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@react-three/postprocessing": "^3.0.4",
-    "@react-three/fiber": "^9.4.0",
-    "react": "^19.2.0",
-    "three": "^0.181.2",
     "@react-three/drei": "^10.7.7",
-    "react-dom": "^19.2.0",
-    "zustand": "^5.0.8",
+    "@react-three/fiber": "^9.4.0",
+    "@react-three/postprocessing": "^3.0.4",
+    "@supabase/supabase-js": "^2.86.2",
     "gsap": "^3.13.0",
-    "postprocessing": "^6.38.0"
+    "posthog-js": "^1.301.1",
+    "postprocessing": "^6.38.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "three": "^0.181.2",
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

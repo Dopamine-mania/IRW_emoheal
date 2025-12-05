@@ -5,6 +5,7 @@ import { Float, MeshDistortMaterial, Environment, Html } from '@react-three/drei
 import * as THREE from 'three';
 import { useStore, ElementType } from '../store';
 import gsap from 'gsap';
+import { RecordButton } from './RecordButton';
 
 // Extended Element Data with Western Spiritual Concepts
 const ELEMENTS: {
@@ -438,22 +439,25 @@ export const SceneSelection: React.FC = () => {
     <>
       <color attach="background" args={['#000000']} />
       <fog attach="fog" args={['#000000', 10, 40]} />
-      
+
       {/* Environment is crucial for Metal material */}
       <Environment preset="city" />
-      
+
       <ambientLight intensity={0.4} />
       <pointLight position={[10, 10, 10]} intensity={1} />
       <pointLight position={[-10, -10, 10]} intensity={0.5} color="blue" />
-      
+
+      {/* V2: AI Voice Diagnosis Button - Center of Five Elements */}
+      <RecordButton />
+
       <group position={[0, 0, 0]}>
         {ELEMENTS.map((el, index) => (
-            <SelectionItem 
-                key={el.id} 
-                data={el} 
-                index={index} 
-                total={ELEMENTS.length} 
-                onSelect={handleSelect} 
+            <SelectionItem
+                key={el.id}
+                data={el}
+                index={index}
+                total={ELEMENTS.length}
+                onSelect={handleSelect}
             />
         ))}
       </group>

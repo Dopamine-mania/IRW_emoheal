@@ -5,6 +5,9 @@ import { MusicTrack } from './utils/musicLibrary';
 
 export type ElementType = 'wood' | 'fire' | 'earth' | 'metal' | 'water';
 
+// V2: User Tier Type
+export type UserTier = 'free' | 'flow' | 'resonance';
+
 type AppState = {
   // Phase control: 
   // 'entry' (portal) -> 'transition' (moving) -> 'emitter' (the core/choice) -> 'selection' (ring of 5) -> 'shards' (inside geometry) -> 'tuning' (typewriter transition) -> 'resonance' (elemental world) -> 'timeCorridor' (side entrance)
@@ -42,6 +45,20 @@ type AppState = {
   currentTrack: MusicTrack | null;
   isPlaying: boolean;
   currentTime: number;
+
+  // V2: Membership Tier State
+  userTier: UserTier;
+
+  // V2: Paywall State
+  paywallVisible: boolean;
+  paywallTrigger: 'tier1_record' | 'tier2_music' | 'tier2_wisdom' | 'tier2_trend' | null;
+
+  // V2: Email Capture State
+  emailCaptureVisible: boolean;
+  hasSubmittedEmail: boolean;
+
+  // V2: Music Playlist Panel State
+  musicPlaylistVisible: boolean;
 
   // Actions
   startJourney: () => void;
@@ -84,6 +101,18 @@ type AppState = {
   setIsPlaying: (playing: boolean) => void;
   setCurrentTime: (time: number) => void;
 
+  // V2: Paywall Actions
+  openPaywall: (trigger: 'tier1_record' | 'tier2_music' | 'tier2_wisdom' | 'tier2_trend') => void;
+  closePaywall: () => void;
+
+  // V2: Email Capture Actions
+  openEmailCapture: () => void;
+  closeEmailCapture: () => void;
+  markEmailSubmitted: () => void;
+
+  // V2: Music Playlist Actions
+  toggleMusicPlaylist: () => void;
+
   reset: () => void;
 };
 
@@ -106,6 +135,14 @@ export const useStore = create<AppState>((set) => ({
   currentTrack: null,
   isPlaying: false,
   currentTime: 0,
+
+  // V2: Initial State
+  userTier: 'free',
+  paywallVisible: false,
+  paywallTrigger: null,
+  emailCaptureVisible: false,
+  hasSubmittedEmail: false,
+  musicPlaylistVisible: false,
 
   startJourney: () => set({ phase: 'transition' }),
   completeTransition: () => set({ phase: 'emitter' }),
@@ -189,5 +226,20 @@ export const useStore = create<AppState>((set) => ({
   setIsPlaying: (playing) => set({ isPlaying: playing }),
   setCurrentTime: (time) => set({ currentTime: time }),
 
-  reset: () => set({ phase: 'entry', currentElement: null, currentLandmark: null, isMicReady: false, isInjecting: false, uploadedPhoto: null, isPhotoMode: false, isPhotoChoicePanelOpen: false, pendingLandmark: null, corridorMode: 'CORRIDOR', corridorFocusIndex: 0, corridorCameraX: 0, corridorIsDragging: false, corridorInspectRotation: { x: 0, y: 0 }, currentTrack: null, isPlaying: false, currentTime: 0 }),
+  // V2: Paywall Actions Implementation
+  openPaywall: (trigger) => set({ paywallVisible: true, paywallTrigger: trigger }),
+  closePaywall: () => set({ paywallVisible: false, paywallTrigger: null }),
+
+  // V2: Email Capture Actions Implementation
+  openEmailCapture: () => set({ emailCaptureVisible: true }),
+  closeEmailCapture: () => set({ emailCaptureVisible: false }),
+  markEmailSubmitted: () => {
+    localStorage.setItem('irw_email_submitted', 'true');
+    set({ hasSubmittedEmail: true, emailCaptureVisible: false });
+  },
+
+  // V2: Music Playlist Actions Implementation
+  toggleMusicPlaylist: () => set((state) => ({ musicPlaylistVisible: !state.musicPlaylistVisible })),
+
+  reset: () => set({ phase: 'entry', currentElement: null, currentLandmark: null, isMicReady: false, isInjecting: false, uploadedPhoto: null, isPhotoMode: false, isPhotoChoicePanelOpen: false, pendingLandmark: null, corridorMode: 'CORRIDOR', corridorFocusIndex: 0, corridorCameraX: 0, corridorIsDragging: false, corridorInspectRotation: { x: 0, y: 0 }, currentTrack: null, isPlaying: false, currentTime: 0, userTier: 'free', paywallVisible: false, paywallTrigger: null, emailCaptureVisible: false, hasSubmittedEmail: false, musicPlaylistVisible: false }),
 }));

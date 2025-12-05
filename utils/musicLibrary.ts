@@ -115,3 +115,22 @@ export function getPreviousTrack(element: ElementType, currentTrackId: string): 
   const previousIndex = (currentIndex - 1 + tracks.length) % tracks.length;
   return tracks[previousIndex];
 }
+
+// V2: 生成扩展播放列表（2首真实 + 18首模拟锁定歌曲）
+export function getExtendedPlaylist(element: ElementType): MusicTrack[] {
+  const realTracks = MUSIC_LIBRARY[element];
+  const mockTracks: MusicTrack[] = [];
+
+  // 生成18首模拟歌曲（Song 3-20）
+  for (let i = 3; i <= 20; i++) {
+    mockTracks.push({
+      id: `${element}_mock_${i}`,
+      title: `${element.charAt(0).toUpperCase() + element.slice(1)} Deep Healing ${i} - 🔒 Locked`,
+      element,
+      fileUrl: '', // 假门，不需要真实URL
+      duration: 180 + Math.floor(Math.random() * 60) // 随机时长 3-4分钟
+    });
+  }
+
+  return [...realTracks, ...mockTracks];
+}

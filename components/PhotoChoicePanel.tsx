@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useStore, ElementType } from '../store';
 import { compressImageIfNeeded } from '../utils/storage';
+import { trackEvent } from '../utils/analytics';
 
 /**
  * PhotoChoicePanel - 能量转化终端选择界面
@@ -67,6 +68,15 @@ export const PhotoChoicePanel: React.FC<PhotoChoicePanelProps> = ({
   const handleUploadPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // V2 Supplemental Requirement #3: 2MB file size limit to prevent LocalStorage crashes
+      const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB in bytes
+
+      if (file.size > MAX_FILE_SIZE) {
+        alert('⚠️ Photo size exceeds 2MB limit.\n\nPlease choose a smaller image to prevent storage issues.');
+        trackEvent('photo_upload_failed', { reason: 'file_too_large', fileSize: file.size });
+        return;
+      }
+
       setIsUploading(true);
       const reader = new FileReader();
       reader.onload = async (event) => {

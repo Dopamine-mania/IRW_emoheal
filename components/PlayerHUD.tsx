@@ -19,6 +19,7 @@ export const PlayerHUD: React.FC = () => {
   const currentTime = useStore(state => state.currentTime);
   const setIsPlaying = useStore(state => state.setIsPlaying);
   const setCurrentTrack = useStore(state => state.setCurrentTrack);
+  const toggleMusicPlaylist = useStore(state => state.toggleMusicPlaylist);
 
   const { seekTo } = useMusicPlayer();
 
@@ -254,6 +255,37 @@ export const PlayerHUD: React.FC = () => {
           }}
         >
           ⏭
+        </button>
+
+        {/* V2: Music Playlist Button */}
+        <button
+          onClick={toggleMusicPlaylist}
+          style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            background: 'rgba(255, 255, 255, 0.1)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            flexShrink: 0,
+            color: 'white',
+            fontSize: '16px'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = `${elementInfo.color}33`;
+            e.currentTarget.style.transform = 'scale(1.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+          title="View Full Playlist"
+        >
+          🎵
         </button>
 
         {/* Progress Bar Container (Right) */}

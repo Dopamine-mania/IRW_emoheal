@@ -4,6 +4,12 @@ import { useStore, ElementType } from '../store';
 import { PlayerHUD } from './PlayerHUD';
 import { PhotoChoicePanel } from './PhotoChoicePanel';
 import { PhotoDeconstruction } from './PhotoDeconstruction';
+import { PaywallModal } from './PaywallModal';
+import { MusicPlaylistPanel } from './MusicPlaylistPanel';
+import { WisdomCard } from './WisdomCard';
+import { TrendChart } from './TrendChart';
+import { EmailCaptureModal } from './EmailCaptureModal';
+import { useEmailCapture } from '../hooks/useEmailCapture';
 
 const ELEMENT_COLORS: Record<ElementType, string> = {
   wood: '#22d3ee',
@@ -31,13 +37,13 @@ export const Overlay: React.FC = () => {
   const isPhotoChoicePanelOpen = useStore((state) => state.isPhotoChoicePanelOpen);
   const pendingLandmark = useStore((state) => state.pendingLandmark);
   const closePhotoChoicePanel = useStore((state) => state.closePhotoChoicePanel);
-  
+
   // Navigation Actions
   const backToEntry = useStore((state) => state.backToEntry);
   const backToEmitter = useStore((state) => state.backToEmitter);
   const backToSelection = useStore((state) => state.backToSelection);
   const backToShards = useStore((state) => state.backToShards);
-  
+
   const [overlayOpacity, setOverlayOpacity] = useState(0);
   const [overlayColor, setOverlayColor] = useState('white');
   const [message, setMessage] = useState<string | null>(null);
@@ -45,6 +51,9 @@ export const Overlay: React.FC = () => {
 
   // Tuning Typewriter State
   const [tuningLines, setTuningLines] = useState<string[]>([]);
+
+  // V2: Initialize Email Capture Hook
+  useEmailCapture();
   
   useEffect(() => {
     // --- Phase Transitions ---
@@ -253,6 +262,25 @@ export const Overlay: React.FC = () => {
         selectedLandmark={pendingLandmark}
         onClose={closePhotoChoicePanel}
       />
+
+      {/* V2: Paywall Modal - Three-tier membership fake door */}
+      <PaywallModal />
+
+      {/* V2: Music Playlist Panel - Shows extended playlist with locked songs */}
+      <MusicPlaylistPanel />
+
+      {/* V2: Wisdom Card - Ancient wisdom interpretations (Tier 2 fake door) */}
+      {phase === 'resonance' && overlayOpacity < 0.5 && currentElement && (
+        <WisdomCard />
+      )}
+
+      {/* V2: Trend Chart - Energy balance analysis (Tier 2 fake door) */}
+      {phase === 'resonance' && overlayOpacity < 0.5 && currentElement && (
+        <TrendChart />
+      )}
+
+      {/* V2: Email Capture Modal - Lead generation with PostHog identity linking */}
+      <EmailCaptureModal />
     </>
   );
 };
