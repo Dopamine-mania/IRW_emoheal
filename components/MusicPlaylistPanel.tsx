@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useStore, ElementType } from '../store';
 import { getExtendedPlaylist } from '../utils/musicLibrary';
+import { trackEvent } from '../utils/analytics';
 
 const ELEMENT_COLORS: Record<ElementType, string> = {
   wood: '#22d3ee',
@@ -18,20 +19,48 @@ export const MusicPlaylistPanel: React.FC = () => {
   const setCurrentTrack = useStore(state => state.setCurrentTrack);
   const setIsPlaying = useStore(state => state.setIsPlaying);
 
+  const [openTime, setOpenTime] = useState<number | null>(null);
+
   const playlist = getExtendedPlaylist(currentElement);
   const color = ELEMENT_COLORS[currentElement];
+
+  // 追踪打开和关闭
+  useEffect(() => {
+    if (musicPlaylistVisible) {
+      const now = Date.now();
+      setOpenTime(now);
+      trackEvent('music_playlist_opened', {
+        source: 'resonance_world',
+        element: currentElement
+      });
+    } else if (openTime) {
+      trackEvent('music_playlist_closed', {
+        duration_ms: Date.now() - openTime,
+        element: currentElement
+      });
+      setOpenTime(null);
+    }
+  }, [musicPlaylistVisible, currentElement, openTime]);
 
   if (!musicPlaylistVisible) return null;
 
   const handleTrackClick = (track: any, index: number) => {
     if (index < 2) {
       // 真实歌曲，可播放
+      trackEvent('unlocked_track_selected', {
+        track_index: index,
+        track_name: track.title,
+        element: currentElement
+      });
       setCurrentTrack(track);
       setIsPlaying(true);
-      // Note: trackEvent will be added when analytics.ts is created
     } else {
       // 锁定歌曲，触发paywall
-      // Note: trackEvent will be added when analytics.ts is created
+      trackEvent('locked_track_clicked', {
+        track_index: index,
+        track_name: track.title,
+        element: currentElement
+      });
       openPaywall('tier2_music');
     }
   };

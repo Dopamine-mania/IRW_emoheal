@@ -1,17 +1,57 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '../store';
 import { TIER_CONFIG } from '../utils/permissions';
+import { trackEvent } from '../utils/analytics';
 
 export const PaywallModal: React.FC = () => {
   const paywallVisible = useStore(state => state.paywallVisible);
   const paywallTrigger = useStore(state => state.paywallTrigger);
   const closePaywall = useStore(state => state.closePaywall);
+  const userTier = useStore(state => state.userTier);
+  const currentElement = useStore(state => state.currentElement);
+
+  // 追踪 modal 打开时间
+  const [openTime, setOpenTime] = useState<number | null>(null);
+
+  // 追踪 paywall 打开事件
+  useEffect(() => {
+    if (paywallVisible && paywallTrigger) {
+      const now = Date.now();
+      setOpenTime(now);
+
+      trackEvent('paywall_opened', {
+        trigger: paywallTrigger,
+        source: getSourceFromTrigger(paywallTrigger),
+        element: currentElement || undefined,
+        user_tier: userTier
+      });
+    }
+  }, [paywallVisible, paywallTrigger, currentElement, userTier]);
+
+  // 辅助函数：从 trigger 推断 source
+  const getSourceFromTrigger = (trigger: string): string => {
+    const sourceMap: Record<string, string> = {
+      tier1_record: 'record_button',
+      tier2_music: 'music_playlist',
+      tier2_wisdom: 'wisdom_card',
+      tier2_trend: 'trend_chart'
+    };
+    return sourceMap[trigger] || 'unknown';
+  };
 
   if (!paywallVisible) return null;
 
-  const handleClose = () => {
-    // Note: trackEvent will be added when analytics.ts is created
+  const handleClose = (method: 'button' | 'background' = 'button') => {
+    const duration = openTime ? Date.now() - openTime : 0;
+
+    trackEvent('paywall_closed', {
+      trigger_type: paywallTrigger || 'unknown',
+      close_method: method,
+      duration_ms: duration
+    });
+
     closePaywall();
+    setOpenTime(null);
   };
 
   const getTriggerTitle = () => {
@@ -24,9 +64,13 @@ export const PaywallModal: React.FC = () => {
     return titles[paywallTrigger || ''] || 'Upgrade Your Experience';
   };
 
-  // 🔥 补充2：情绪按摩文案
+  // 处理 tier 选择
   const handleCTAClick = (tier: string) => {
-    // Note: trackEvent will be added when analytics.ts is created
+    trackEvent('tier_cta_clicked', {
+      tier,
+      trigger_type: paywallTrigger || 'unknown',
+      source: getSourceFromTrigger(paywallTrigger || '')
+    });
 
     // 正向反馈，将受挫感转为尊贵感
     alert(
@@ -49,7 +93,7 @@ export const PaywallModal: React.FC = () => {
         backgroundColor: 'rgba(0, 0, 0, 0.85)',
         animation: 'fadeIn 0.3s ease-out'
       }}
-      onClick={handleClose}
+      onClick={() => handleClose('background')}
     >
       <div
         style={{
@@ -196,7 +240,7 @@ export const PaywallModal: React.FC = () => {
 
         {/* 关闭按钮 */}
         <button
-          onClick={handleClose}
+          onClick={() => handleClose('button')}
           style={{
             position: 'absolute',
             top: '16px',

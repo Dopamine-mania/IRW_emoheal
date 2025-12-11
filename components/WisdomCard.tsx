@@ -1,6 +1,7 @@
 import React from 'react';
 import { useStore, ElementType } from '../store';
 import { getWisdomForElement } from '../utils/wisdomContent';
+import { trackEvent } from '../utils/analytics';
 
 const ELEMENT_COLORS: Record<ElementType, string> = {
   wood: '#22d3ee',
@@ -18,7 +19,10 @@ export const WisdomCard: React.FC = () => {
   const color = ELEMENT_COLORS[currentElement];
 
   const handleClick = () => {
-    // Note: trackEvent will be added when analytics.ts is created
+    trackEvent('wisdom_card_clicked', {
+      element: currentElement || 'unknown'
+    });
+
     openPaywall('tier2_wisdom');
   };
 

@@ -3,10 +3,13 @@ import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from '../store';
+import { trackEvent } from '../utils/analytics';
 
 export const RecordButton: React.FC = () => {
   const meshRef = useRef<THREE.Group>(null);
   const openPaywall = useStore(state => state.openPaywall);
+  const currentElement = useStore(state => state.currentElement);
+  const phase = useStore(state => state.phase);
 
   useFrame((state) => {
     if (meshRef.current) {
@@ -20,7 +23,13 @@ export const RecordButton: React.FC = () => {
   });
 
   const handleClick = () => {
-    // Note: trackEvent will be added when analytics.ts is created
+    // 追踪点击事件
+    trackEvent('record_button_clicked', {
+      source: phase,
+      user_element: currentElement || undefined
+    });
+
+    // 打开 paywall
     openPaywall('tier1_record');
   };
 
