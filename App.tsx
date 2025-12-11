@@ -12,6 +12,7 @@ import { Effects } from './components/Effects';
 import { Overlay } from './components/Overlay';
 import { CorridorHUD } from './components/CorridorHUD';
 import { CameraRig } from './components/CameraRig';
+import { CookieBanner } from './components/CookieBanner';
 
 const App: React.FC = () => {
   const phase = useStore((state) => state.phase);
@@ -64,6 +65,9 @@ const App: React.FC = () => {
 
       {/* Time Corridor HUD - Rendered outside Canvas */}
       {phase === 'timeCorridor' && <CorridorHUD />}
+
+      {/* Cookie Consent Banner */}
+      <CookieBanner />
     </div>
   );
 };
