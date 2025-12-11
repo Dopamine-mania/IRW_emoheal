@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import * as THREE from 'three';
 import { MeshReflectorMaterial } from '@react-three/drei';
 import { useStore } from '../store';
@@ -7,12 +7,43 @@ export const SceneEntry: React.FC = () => {
   const startJourney = useStore((state) => state.startJourney);
   const phase = useStore((state) => state.phase);
 
-  // Handle click on the monolith
-  const handleClick = () => {
-    if (phase === 'entry') {
+  // Mobile-friendly tap detection state
+  const [tapStartTime, setTapStartTime] = useState<number | null>(null);
+  const [tapStartPos, setTapStartPos] = useState<{ x: number; y: number } | null>(null);
+
+  // Handle tap/click on the monolith
+  const handlePointerDown = (e: any) => {
+    if (phase !== 'entry') return;
+    setTapStartTime(Date.now());
+    setTapStartPos({ x: e.clientX || e.point.x, y: e.clientY || e.point.y });
+  };
+
+  const handlePointerUp = (e: any) => {
+    if (phase !== 'entry' || !tapStartTime || !tapStartPos) return;
+
+    const tapDuration = Date.now() - tapStartTime;
+    const endPos = { x: e.clientX || e.point.x, y: e.clientY || e.point.y };
+    const distance = Math.sqrt(
+      Math.pow(endPos.x - tapStartPos.x, 2) + Math.pow(endPos.y - tapStartPos.y, 2)
+    );
+
+    // Tap detected: duration < 300ms and movement < 10px
+    if (tapDuration < 300 && distance < 10) {
       startJourney();
     }
+
+    // Reset tap state
+    setTapStartTime(null);
+    setTapStartPos(null);
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      setTapStartTime(null);
+      setTapStartPos(null);
+    };
+  }, []);
 
   return (
     <>
@@ -21,11 +52,15 @@ export const SceneEntry: React.FC = () => {
       {/* The Monolith (Screen) */}
       <group position={[0, 2, 0]}>
         {/* Main White Screen */}
-        <mesh onClick={handleClick} position={[0, 0, 0]}>
+        <mesh
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerUp}
+          position={[0, 0, 0]}
+        >
           {/* 16:9 Aspect Ratio Giant Screen */}
-          <planeGeometry args={[16, 9]} /> 
-          <meshBasicMaterial 
-            color={0xffffff} 
+          <planeGeometry args={[16, 9]} />
+          <meshBasicMaterial
+            color={0xffffff}
             toneMapped={false} // Crucial for Bloom to pick this up as "very bright"
           />
         </mesh>
