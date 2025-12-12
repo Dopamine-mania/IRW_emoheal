@@ -52,6 +52,10 @@ export const Overlay: React.FC = () => {
   // Tuning Typewriter State
   const [tuningLines, setTuningLines] = useState<string[]>([]);
 
+  // Feature Preview Modal State
+  const [showFeatureModal, setShowFeatureModal] = useState(false);
+  const [selectedFeature, setSelectedFeature] = useState<'audio' | 'energy' | 'meditation' | null>(null);
+
   // V2: Initialize Email Capture Hook
   useEmailCapture();
   
@@ -186,7 +190,8 @@ export const Overlay: React.FC = () => {
       <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3 pointer-events-auto transition-opacity duration-1000 ${phase === 'entry' ? 'opacity-100' : 'opacity-0'}`}>
         <button
           onClick={() => {
-            useStore.setState({ phase: 'emitter' });
+            setSelectedFeature('audio');
+            setShowFeatureModal(true);
           }}
           className="px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white/70 text-xs hover:bg-white/20 hover:text-white/90 transition-all duration-300 hover:scale-105"
         >
@@ -195,7 +200,8 @@ export const Overlay: React.FC = () => {
 
         <button
           onClick={() => {
-            useStore.setState({ phase: 'selection' });
+            setSelectedFeature('energy');
+            setShowFeatureModal(true);
           }}
           className="px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white/70 text-xs hover:bg-white/20 hover:text-white/90 transition-all duration-300 hover:scale-105"
         >
@@ -204,7 +210,8 @@ export const Overlay: React.FC = () => {
 
         <button
           onClick={() => {
-            useStore.setState({ phase: 'tuning' });
+            setSelectedFeature('meditation');
+            setShowFeatureModal(true);
           }}
           className="px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white/70 text-xs hover:bg-white/20 hover:text-white/90 transition-all duration-300 hover:scale-105"
         >
@@ -323,6 +330,110 @@ export const Overlay: React.FC = () => {
 
       {/* V2: Email Capture Modal - Lead generation with PostHog identity linking */}
       <EmailCaptureModal />
+
+      {/* Feature Preview Modal */}
+      {showFeatureModal && selectedFeature && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.85)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 200,
+            padding: '24px',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)'
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowFeatureModal(false);
+            }
+          }}
+        >
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%)',
+            borderRadius: '24px',
+            padding: '40px',
+            maxWidth: '500px',
+            width: '100%',
+            boxShadow: '0 20px 60px rgba(139, 92, 246, 0.3)',
+            border: '2px solid rgba(139, 92, 246, 0.4)'
+          }}>
+            {selectedFeature === 'audio' && (
+              <>
+                <div style={{ fontSize: '48px', textAlign: 'center', marginBottom: '16px' }}>🎵</div>
+                <h2 style={{ color: 'white', fontSize: '24px', fontWeight: '300', marginBottom: '16px', textAlign: 'center' }}>
+                  Frequency Audio
+                </h2>
+                <p style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '15px', lineHeight: '1.8', marginBottom: '12px' }}>
+                  Experience personalized binaural frequencies (396-741Hz) matched to your elemental energy signature.
+                </p>
+                <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '14px', lineHeight: '1.7' }}>
+                  Each frequency resonates with specific meridians in Traditional Chinese Medicine, designed to restore energetic balance.
+                </p>
+              </>
+            )}
+
+            {selectedFeature === 'energy' && (
+              <>
+                <div style={{ fontSize: '48px', textAlign: 'center', marginBottom: '16px' }}>🔮</div>
+                <h2 style={{ color: 'white', fontSize: '24px', fontWeight: '300', marginBottom: '16px', textAlign: 'center' }}>
+                  Energy Reading
+                </h2>
+                <p style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '15px', lineHeight: '1.8', marginBottom: '12px' }}>
+                  Discover ancient wisdom interpretations based on your elemental alignment.
+                </p>
+                <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '14px', lineHeight: '1.7' }}>
+                  Receive insights about emotional patterns, physical manifestations, and harmonization practices from Traditional Chinese Medicine's Five Elements system.
+                </p>
+              </>
+            )}
+
+            {selectedFeature === 'meditation' && (
+              <>
+                <div style={{ fontSize: '48px', textAlign: 'center', marginBottom: '16px' }}>🧘‍♀️</div>
+                <h2 style={{ color: 'white', fontSize: '24px', fontWeight: '300', marginBottom: '16px', textAlign: 'center' }}>
+                  Guided Meditation
+                </h2>
+                <p style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '15px', lineHeight: '1.8', marginBottom: '12px' }}>
+                  Immerse yourself in 3D spatial audio meditation within resonance fields.
+                </p>
+                <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '14px', lineHeight: '1.7' }}>
+                  Navigate through sacred landmarks while receiving element-specific guidance for emotional and energetic healing.
+                </p>
+              </>
+            )}
+
+            <button
+              onClick={() => setShowFeatureModal(false)}
+              style={{
+                marginTop: '32px',
+                padding: '12px 32px',
+                borderRadius: '24px',
+                background: 'rgba(139, 92, 246, 0.2)',
+                border: '1px solid rgba(139, 92, 246, 0.4)',
+                color: 'white',
+                fontSize: '14px',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                letterSpacing: '1px',
+                fontWeight: '500',
+                width: '100%'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(139, 92, 246, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(139, 92, 246, 0.2)';
+              }}
+            >
+              Click Portal to Experience →
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 };
