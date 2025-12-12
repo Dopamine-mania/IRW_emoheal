@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
@@ -11,10 +11,15 @@ export const RecordButton: React.FC = () => {
   const currentElement = useStore(state => state.currentElement);
   const phase = useStore(state => state.phase);
 
+  const [isCollecting, setIsCollecting] = useState(false);
+  const [showMessage, setShowMessage] = useState(false);
+
   useFrame((state) => {
     if (meshRef.current) {
-      // 呼吸缩放
-      const scale = 1 + Math.sin(state.clock.elapsedTime * 2) * 0.05;
+      // Enhanced animation during collecting
+      const baseScale = 1 + Math.sin(state.clock.elapsedTime * 2) * 0.05;
+      const collectingScale = isCollecting ? 1.2 : 1;
+      const scale = baseScale * collectingScale;
       meshRef.current.scale.setScalar(scale);
 
       // 缓慢旋转
@@ -23,14 +28,29 @@ export const RecordButton: React.FC = () => {
   });
 
   const handleClick = () => {
+    if (isCollecting) return; // Prevent double-click
+
     // 追踪点击事件
     trackEvent('record_button_clicked', {
       source: phase,
       user_element: currentElement || undefined
     });
 
-    // 打开 paywall
-    openPaywall('tier1_record');
+    // Start animation
+    setIsCollecting(true);
+
+    // After 1 second, show message
+    setTimeout(() => {
+      setShowMessage(true);
+      trackEvent('energy_collected_shown');
+    }, 1000);
+
+    // After 2.5 seconds total, show paywall
+    setTimeout(() => {
+      setIsCollecting(false);
+      setShowMessage(false);
+      openPaywall('tier1_record');
+    }, 2500);
   };
 
   return (
@@ -41,7 +61,7 @@ export const RecordButton: React.FC = () => {
         <meshBasicMaterial
           color="#22d3ee"
           transparent
-          opacity={0.3}
+          opacity={isCollecting ? 0.8 : 0.3}
           side={THREE.DoubleSide}
         />
       </mesh>
@@ -52,7 +72,7 @@ export const RecordButton: React.FC = () => {
         <meshStandardMaterial
           color="#22d3ee"
           emissive="#22d3ee"
-          emissiveIntensity={0.5}
+          emissiveIntensity={isCollecting ? 1.5 : 0.5}
           roughness={0.3}
           metalness={0.7}
         />
@@ -91,6 +111,24 @@ export const RecordButton: React.FC = () => {
           AI VOICE DIAGNOSIS
         </div>
       </Html>
+
+      {/* Energy Collected Message */}
+      {showMessage && (
+        <Html center position={[0, 0, 0]} distanceFactor={8}>
+          <div style={{
+            color: 'white',
+            fontSize: '18px',
+            fontWeight: '300',
+            letterSpacing: '3px',
+            textAlign: 'center',
+            pointerEvents: 'none',
+            textShadow: '0 0 20px rgba(255, 255, 255, 0.8)',
+            animation: 'fadeIn 0.5s ease-out'
+          }}>
+            ✨ Energy Collected ✨
+          </div>
+        </Html>
+      )}
 
       {/* 点光源 */}
       <pointLight color="#22d3ee" intensity={2} distance={10} />

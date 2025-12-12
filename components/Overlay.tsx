@@ -164,10 +164,52 @@ export const Overlay: React.FC = () => {
   return (
     <>
       {/* Instructions Overlay */}
-      <div className={`absolute bottom-10 left-0 w-full text-center pointer-events-none transition-opacity duration-1000 ${phase === 'entry' ? 'opacity-100' : 'opacity-0'}`}>
-        <p className="text-white/50 text-xs tracking-[0.5em] uppercase font-light">
-          Click the Portal to Enter
+      <div className={`absolute bottom-20 left-0 w-full text-center pointer-events-none transition-opacity duration-1000 ${phase === 'entry' ? 'opacity-100' : 'opacity-0'}`}>
+        {/* Main Guidance */}
+        <p className="text-white/80 text-sm tracking-[0.3em] uppercase font-light mb-2">
+          Interactive 3D Healing Journey
         </p>
+        <p className="text-white/50 text-xs tracking-[0.5em] uppercase font-light">
+          Click Portal to Start
+        </p>
+
+        {/* Headphone Indicator */}
+        <div className="flex items-center justify-center gap-2 mt-4 text-white/40">
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/>
+          </svg>
+          <span className="text-xs">Headphones Recommended</span>
+        </div>
+      </div>
+
+      {/* Feature Preview Chips */}
+      <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3 pointer-events-auto transition-opacity duration-1000 ${phase === 'entry' ? 'opacity-100' : 'opacity-0'}`}>
+        <button
+          onClick={() => {
+            useStore.setState({ phase: 'emitter' });
+          }}
+          className="px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white/70 text-xs hover:bg-white/20 hover:text-white/90 transition-all duration-300 hover:scale-105"
+        >
+          🎵 Frequency Audio
+        </button>
+
+        <button
+          onClick={() => {
+            useStore.setState({ phase: 'selection' });
+          }}
+          className="px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white/70 text-xs hover:bg-white/20 hover:text-white/90 transition-all duration-300 hover:scale-105"
+        >
+          🔮 Energy Reading
+        </button>
+
+        <button
+          onClick={() => {
+            useStore.setState({ phase: 'tuning' });
+          }}
+          className="px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white/70 text-xs hover:bg-white/20 hover:text-white/90 transition-all duration-300 hover:scale-105"
+        >
+          🧘‍♀️ Meditation
+        </button>
       </div>
 
        {phase === 'emitter' && overlayOpacity === 0 && (
