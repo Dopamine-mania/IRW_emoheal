@@ -7,6 +7,13 @@ export const initializePostHog = async () => {
 
   const posthogKey = import.meta.env.VITE_POSTHOG_KEY;
   const posthogHost = import.meta.env.VITE_POSTHOG_HOST;
+  const isDev = import.meta.env.DEV;
+
+  // Disable PostHog in development mode
+  if (isDev) {
+    console.log('[PostHog] Development mode - Analytics disabled');
+    return;
+  }
 
   if (posthogKey && posthogHost && !posthog.__loaded) {
     posthog.init(posthogKey, {
@@ -19,6 +26,8 @@ export const initializePostHog = async () => {
         url_allowlist: [window.location.origin]
       }
     });
+
+    console.log('[PostHog] Initialized in production mode');
   }
 };
 

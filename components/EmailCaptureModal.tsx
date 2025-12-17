@@ -7,6 +7,8 @@ export const EmailCaptureModal: React.FC = () => {
   const emailCaptureVisible = useStore(state => state.emailCaptureVisible);
   const closeEmailCapture = useStore(state => state.closeEmailCapture);
   const markEmailSubmitted = useStore(state => state.markEmailSubmitted);
+  const currentElement = useStore(state => state.currentElement);
+  const userTier = useStore(state => state.userTier);
 
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,14 +56,20 @@ export const EmailCaptureModal: React.FC = () => {
         throw new Error(supabaseError.message);
       }
 
-      // PostHog Identity Linking - 关键补充需求
-      identifyUser(email);
+      // PostHog Identity Linking - 关键补充需求（增强属性）
+      identifyUser(email, {
+        signup_timestamp: new Date().toISOString(),
+        source: 'email_capture_modal',
+        user_tier: userTier || 'free',
+        first_element: currentElement || 'unknown',
+        consent_given: true
+      });
 
-      // 追踪邮箱提交事件
+      // 追踪邮箱提交事件（移除 email 字段以保护隐私）
       trackEvent('email_captured', {
         source: 'email_capture_modal',
-        email: email,
-        consent_given: true
+        consent_given: true,
+        timestamp: new Date().toISOString()
       });
 
       // 标记为已提交（LocalStorage + Zustand）

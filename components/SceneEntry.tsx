@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import * as THREE from 'three';
 import { MeshReflectorMaterial } from '@react-three/drei';
 import { useStore } from '../store';
+import { trackEvent } from '../utils/analytics';
 
 export const SceneEntry: React.FC = () => {
   const startJourney = useStore((state) => state.startJourney);
@@ -29,6 +30,13 @@ export const SceneEntry: React.FC = () => {
 
     // Tap detected: duration < 300ms and movement < 10px
     if (tapDuration < 300 && distance < 10) {
+      // Track portal entry event
+      trackEvent('portal_entered', {
+        referrer: document.referrer || 'direct',
+        device_type: /Mobile|Android|iPhone/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
+        timestamp: new Date().toISOString()
+      });
+
       startJourney();
     }
 

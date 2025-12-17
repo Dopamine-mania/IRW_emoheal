@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useStore } from '../store';
+import { trackEvent } from '../utils/analytics';
 
 export const useMusicPlayer = () => {
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
@@ -9,6 +10,8 @@ export const useMusicPlayer = () => {
   const setIsPlaying = useStore(state => state.setIsPlaying);
   const setTrackCompleted = useStore(state => state.setTrackCompleted);
   const setTrackProgress = useStore(state => state.setTrackProgress);
+  const currentElement = useStore(state => state.currentElement);
+  const timeInResonance = useStore(state => state.timeInResonance);
 
   // 初始化 Audio Element
   useEffect(() => {
@@ -73,6 +76,20 @@ export const useMusicPlayer = () => {
       setCurrentTime(0);
       setTrackCompleted(true);
       setTrackProgress(100);
+
+      // Track session completion event
+      if (currentTrack) {
+        trackEvent('session_completed', {
+          track_id: currentTrack.id,
+          track_name: currentTrack.title,
+          element: currentElement || 'unknown',
+          duration_seconds: Math.round(audioElement.duration),
+          time_in_resonance: timeInResonance || 0,
+          completion_rate: 100,
+          timestamp: new Date().toISOString()
+        });
+      }
+
       console.log('[MusicPlayer] Track completed');
     };
 
@@ -83,7 +100,7 @@ export const useMusicPlayer = () => {
       audioElement.removeEventListener('timeupdate', handleTimeUpdate);
       audioElement.removeEventListener('ended', handleEnded);
     };
-  }, [audioElement, setCurrentTime, setIsPlaying, setTrackCompleted, setTrackProgress]);
+  }, [audioElement, setCurrentTime, setIsPlaying, setTrackCompleted, setTrackProgress, currentTrack, currentElement, timeInResonance]);
 
   // 进度跳转
   const seekTo = useCallback((time: number) => {
